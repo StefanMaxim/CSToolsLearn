@@ -1,0 +1,12 @@
+Host *
+	AddKeysToAgent yes
+	UseKeychain yes
+	ServerAliveInterval 60
+	ServerAliveCountMax 4
+Host rig_local
+	HostName 100.111.123.54
+	User gcmain
+	IdentityFile ~/.ssh/id_ed25519_linux_desktop
+	IdentitiesOnly yes
+	StrictHostKeyChecking accept-new
+	Port 22

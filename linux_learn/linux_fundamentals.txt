@@ -1,0 +1,4 @@
+NOTE:
+
+bash vs tmux:
+tmux isnt a separate terminal, but rather a terminal multiplexer that runs ontop of the bash shell

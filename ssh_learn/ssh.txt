@@ -240,6 +240,11 @@ now that the ssh server is up and running on the server, we can ssh to it using:
 ssh user@ipaddr of server to ssh into that user for that ipadress
 if you just to ssh ipaddr, it will try with your current username (will change this later via configs)
 
+to create the key:
+
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_linux_desktop -C "mac to remote linux desktop"
+
+
 but it clearly works now, the ssh, so lets get the keys created:
 when SSHing, you need two keys, a public and private key. public is sent to server and appended
 to ~/.ssh/authorized_keys. private keys are stored locally at ~/.ssh/id_ed25519_linux_desktop
@@ -286,6 +291,18 @@ scp:
 scp -r /root/source user@ipaddr:/root/bin wil copy recurseively from local to remote
 
 rsync -a -e ssh /bin/bash user@ipaddr:/bin/bash #will sync the remote directory to the local
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

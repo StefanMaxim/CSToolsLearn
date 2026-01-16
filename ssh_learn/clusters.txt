@@ -1,0 +1,68 @@
+right now at my house, there are just a bunch of little computers each with some nvidia 
+graphic card that can only do part of a task. I have two computers with 5090s two with 5070s and one with a 5060, 
+which while great for small tasks falls short for llm finetuning. Thus, I was wondering if I could combine them into 
+a cluster of containers. That way if i need all of them to do the same task, I can do that, but if instead I want to 
+do multiple tasks, I can just create a container which is auto set up to have the stuff I need and have it run that way.
+
+This is a large task, so first give me an outline on what i have to do:
+
+CRUTIAL NOTE: you cannot combine all computers into a single GPU memory space like how NVLINK does inside a box.
+(nvlink is a cable-like apparatus that lets you share the memory of a single gpu)
+
+INSTEAD: run distrubuted training and distributed inference across computers which can be scheduled and launched
+via containers.
+
+
+You’ll set up:
+
+A cluster control plane (one machine is the “manager”)
+
+GPU-enabled worker nodes (the other machines join)
+
+A container runtime + NVIDIA drivers that reliably exposes GPUs to containers
+
+A job runner / scheduler so you can:
+
+launch one container on one GPU
+
+or many containers across many GPUs
+
+or one distributed job across multiple machines
+
+Shared storage + networking so jobs can see datasets/checkpoints
+
+Standard base images so every job starts “pre-installed”
+
+Observability + guardrails (monitoring, quotas, access)
+
+NOTE: before you can do this, you will need to learn a lot of stuff.
+
+
+
+THIS IS A PAIN AND VERY DIFFICULT:
+first, lets just try to get this stuff set up on my local computer
+
+Ill be honest. I think i am in over my head, so before trying this much more difficult project, I want to see if I can get
+something like this working on my local computer. I have a single desktop (with a 5070) that I want to practice to get 
+working in a way that will prepare me for the larger task of the cluster. Here, I want to get practice with all of the 
+essential tools and skills I will need for the cluster. Thus, I was hoping you could find a way of getting this set up. 
+For this, I was thinking (and correct me if this is not the best way) to have that computer serve as the head node 
+containing the NFS server and also have it be able to set up clusters on the go. That way, I can just query the server 
+from my macbook, "hey I have a task I want you to run, give me a container to run it" Again this is subject to change, 
+but my goal here is to get familiar with all the tools I will use for the cluster before erasing all my home computers 
+and setting it up.
+
+(FIRST, LEARN THE BASICS AND USE WHAT YOU HAVE SO FAR)
+
+
+STUFF TO LEARN: DOCKER, NODE.JS, FastAPI
+
+STEP 0:
+Desktop runs Ubuntu server
+NVIDIA drivers installed
+container runtime installed (DOCKER)
+(FIRST HAVE TO GET FAMILIAR WITH DOCKER)
+
+
+STEP 1:
+right now, you are connecting to the computer via ssh rig_remote, 
