@@ -1,0 +1,237 @@
+version control systems = helps track history of changes to different documents + collaboration
+
+tracks changes to folder + contents in series of snapshots: and multiple of these to track the total state
+each snapshot completely encapsulates the change to some top level folder in some drive.
+
+VC systems also keep metadata along with the conent, like who wrote things and when (author, commit timestamps, extra messages, etc)
+
+can use diff branches of development to work on things in parallel
+
+NOTE: you can take git and give it a unit test that is currently failing and ask it to find the version when the test worked
+or something like that
+
+git is leaky abstraction: DONT START WITH INTERFACE
+
+
+
+
+
+
+
+FIRST, LETS START WITH THE DATA MODEL FOR GIT:
+
+git has model to facilitate interactions for saving code, sharing code, and merging different branches of your code
+
+(THEORY ON PAPER)
+
+
+COMMANDS:
+
+git init //initializes the .git repository, which contains the references and objects subdirectores which you will be altering
+git help <instr> gives info on a specific git COMMANDS
+git status //tells you things like what is in staging area and what branch you are in
+git add  hello.txt //adds hello.txt to staging area
+git add :/ //adds all files in working dir to the staging area
+git commit //creates a commit with the current working dir from the last commit (using head)
+git commit -m "msg" //commits with a message builtin
+git commit -a //commits all changes to currently tracked files
+git log //gives a log showing all tracked commits
+git log --all --graph --decorate --oneline // gives a graph of the commits, compressed via oneline
+git cat-file -p <file> //shows the contents of the hashed git objects, used to understand how it all works
+git rm --cached <filename>  //removes a file from the staging area, ie no longer tracked
+git restore --staged <filename> //removes the modification from the index without untracking the file. (changes kept in working tree, but the next commit will just be the unmodified version)
+git rm -r --cached <dirname> //used for removing directories from the staging area
+NOTE: the index is the same as staging area, so git rm will remove the file from the working dir and index
+git rm -r <filename> // THIS WILL STAGE THE DELETION (STILL IN WORKING TREE FOR NOW, and untracks the file)
+Exe: if you had a file in a past commit, and then git rm --cached the file, it will uppear as untracked, 
+and the index will show its deletion, meanign on teh next ocmmit the file will be missing
+(NOTE: difference between stuff like rm and git rm: when you use regular rm, it doesnt inform git and it wil just think the file is untracked or missing)
+(git rm first removes the files and then stages the change, telling git to stop tracking the file and )
+
+git restore <filename> //restores a file to state it was at a particular commit
+git restore -s (source) filename //restores a file from a specific commit, not necessarily the previous one
+git checkout filename.txt //does the same thing as one above (CHECK)
+git checkout -f filename.txt // checkout by default does not edit files if changes will be lost, -f does it anyways
+git checkout <ref/id> changes the directory to the state it was in a different commit.
+
+//notes on git checkout: git checkout makes your working tree of tracked files match those of the commits
+//any untracked or ignored files are left alone.
+//ONCE A PATH IS COMMITTED AT SOME POINT, IT IS NOW A TRACKED FILE. THIS WAY, YOU CAN REMOVE IT SAFELY SINCE IT IS NOT
+// A WORKING DIRECTORY CHANGE. (NOTE: file must be committed to be tracked, adding it to index not enough)
+
+
+
+
+git diff hello.txt //compares state of file hello.txt FROM WORKING TREE TO INDEX
+git diff -a //does this for all files tracked.
+git diff <sha1id> <filename> compares cwt with the commit for the file
+git diff HEAD hello.txt // compares cwd with head for hello.txt
+git diff <id1> <id2> <filename> //compares how to get from id1 to id2 for filename
+
+//now the branch stuff:
+git branch //lists all the branches in your repository
+git branch -vv //lists it extra verbose, with the commit they correspond to and any upstreams
+git branch <branchname> //creates a new branch names branchname where you currently are
+git checkout -b <branchname> //creates and checks out a branch named branchname
+git branch -m oldname newname // to rename branches
+git branch -M main // renames current branch to main forcefully
+git branch -d branchname //used ot delete local branches merged with other branches
+git branch -D branchname //used to force delete branches
+
+//now the merge stuff:
+git merge branchname //merges the branch you are currently on with branchname branch. (use git status to see merge conflict)
+git merge --abort //cancels the current merge try
+git add file //used to resolve merge requests, must add the file to show that the merge conflict is fixed
+git add/restore //to update what you want committed and git restore to restore the files you dont want committed
+git mergetool //used to resolve merge conflicts
+NOTE: will appear like this 
+<<<<<HEAD
+code here
+-------
+>>>>>branch2
+code here
+in the merge conflict zone
+
+git merge --continue // used to continue the merge request after the merge conflict is resolved
+
+
+
+
+
+
+
+
+//now on to remotes
+
+git remote //lists all the remotes you have
+//to make remote:
+mkdir remote
+cd remote
+git init --bare
+
+git remote add <name> <url> // used to add remotes, name usually origin if only one, and url can be path if local
+git push <remote> <local branch>:<remote branch> // pushes local changes to remote, creating/setting a branch named remote branch to point to where local branch is pointing
+git branch -vv 
+git push origin main:main
+git push -u origin main. will push and set upstream of local main to remote main,
+
+git clone <url> <folder_name> //used for making a copy of a remote on a local machine, retaining the origin it pointed to
+git clone ./remote demo2 
+
+git branch --set-upstread-to=origin/main //makes the current branch correspond to origin/main, so when you do 
+//git push, knows to update the position of origin/main to that of main, or whatever branch you are currently on
+
+git fetch <remote>// retrieves the changes from a git repo, updating the position of the remote head/main branch
+git merge origin/main //need to do after a fetch so that they are at the same place (fast forward merge)
+git pull //the same as a fetch and merge with main, but must have set your upsteam for it to work
+(NOTE: git pull will pull for the current branch, assuming an upstream is set)
+git pull origin main does the same thing, pulling from origin main and setting that to main 
+(git pull origin main  = git fetch origin, then then merge origin/main)
+
+
+git push --prune remote: removes all remote branches that do not have a local branch with the same name
+git push --all pushes all branches
+
+
+TO MOVE A BRANCH:
+git update-refs refs/heads/main <where to make it point to: id/ref>
+
+
+
+
+
+git branch -d --remote <branchname> //will remote a branch on the remote (seems to only be on the local one)
+
+
+
+
+//generic stuff:
+git config <tag> used to modify your git config file
+vim ~/.gitconfig //opens a vim doc with you git config file,(should add an author and email part)
+(RIGHT, gitconfig is a single text file, so dont make a directory)
+
+
+
+
+
+
+git clone --shallow //clones a repo, but only the latest snapshots, to save space
+git add -p <filename> //lets you do staged add, where (s is split in two, y is add, n is no)
+y - stage this hunk
+               n - do not stage this hunk
+               q - quit; do not stage this hunk or any of the remaining ones
+               a - stage this hunk and all later hunks in the file
+               d - do not stage this hunk or any of the later hunks in the file
+               g - select a hunk to go to
+               / - search for a hunk matching the given regex
+               j - leave this hunk undecided, see next undecided hunk
+               J - leave this hunk undecided, see next hunk
+               k - leave this hunk undecided, see previous undecided hunk
+               K - leave this hunk undecided, see previous hunk
+               s - split the current hunk into smaller hunks
+               e - manually edit the current hunk
+               p - print the current hunk
+               ? - print help
+
+
+
+
+
+
+git diff --cached //compares staging area with most recent commit
+
+git blame <file> tells you who added what and in which commit
+git show <commit id /reference>// gives infor for a specific commit
+
+git stash //returns working directory to last snapshot and caches changes, (useful when changing in working dir, but want to checkout old)
+git stash pop //returns working directory back to normal, undoing the caching of the changes.
+
+git bisect // used to search history. look into later
+
+.gitignore // used to tell git which files to ignore:
+:
+"
+.DS_Store
+*.o
+" means ignore files with .DS_Store, and all files ending in .i
+
+
+
+
+
+
+GITHUB:
+
+1: remember to initialize your repos as empty, otherwise the historeis will be different and you will unabel to merge
+
+2: pull request != request for you to pull from the remote. INSTEAD, its a request to teh owner of the remote
+to pull from your local to update the remote (functionally a push from the local)\
+
+
+* 1f6a957 (origin/StefanMaxim-patch-1) Add initial README file with project description
+* 96f40f0 (HEAD -> main, origin/main, origin/HEAD) final changes to lb07
+* 80097b1 final change hopefully' '
+* 6b63f28 final change to lb07
+* c149a0c fixed formatting
+* 9471a54 bugfix
+* 9c5e89d lb07 seems to work
+* 391a19a final commit before comments
+* 5ed61ba second round of changes
+
+(looks like this from the local), after git fetch origin
+(after accepting the merge request)
+*   e485fa6 (origin/main, origin/HEAD) Merge pull request #1 from StefanMaxim/StefanMaxim-patch-1
+|\  
+| * 1f6a957 (origin/StefanMaxim-patch-1) Add initial README file with project description
+|/  
+* 96f40f0 (HEAD -> main) final changes to lb07
+* 80097b1 final change hopefully' '
+* 6b63f28 final change to lb07
+* c149a0c fixed formatting
+* 9471a54 bugfix
+* 9c5e89d lb07 seems to work
+* 391a19a final commit before comments
+* 5ed61ba second round of changes
+* c7a823d first commit of lb07
+
+

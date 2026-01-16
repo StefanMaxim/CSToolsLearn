@@ -1,0 +1,68 @@
+Goal of reverse engineering is to go from executable -> code to figure out what
+it does.
+
+xxd sorting. to open the file to see what is inside of the binay
+
+Notice: while most of the program isnt readable, some of it is, and the
+strings are still there adn can 
+
+To get better view of the strings:
+strings -n 10 /path/to/file.etf | less #displays all length of 10 longer strings:
+strings sorting r
+
+what does this program do:
+
+__PAGEZERO  #in macos, compiled binaries have pagezero, place in memory starts with address 0 (not readable/writable/exec)
+(exists to catch null pts)
+__unwind_info
+__PAGEZERO
+__PAGEZERO
+__PAGEZERO
+__PAGEZERO
+__unwind_info
+__DATA_CONST
+__DATA_CONST
+__LINKEDIT #liekly from the linker
+/usr/lib/dyld #dynamic linker
+/usr/lib/libSystem.B.dylib
+We want to find the position of the element 10 in the array. 
+The position we found is index %d
+But this took a lot of time, which can be done more simply with binary search
+Using Binary Search, we obtain the same index of %d
+First element is now %d
+Last element is now %d
+___stack_chk_fail
+___stack_chk_guard
+inarySearch
+lectionSort
+MquentialSearch
+_mh_execute_header
+1insertionSort
+__mh_execute_header
+_binarySearch
+_bubbleSort
+_createArr
+_insertionSort
+_insertionSort2
+_selectionSort
+_sequentialSearch
+___stack_chk_fail
+___stack_chk_guard
+/Users/stefancelmare/Library/Mobile Documents/com~apple~CloudDocs/Home/Computer Science/CSLearn/
+/var/folders/n1/0nnckscj36xfsjzb_6z3y0ym0000gn/T/sorting-21bb77.o
+glibc is a compiler for c
+
+
+2: disassemble into assembly / pseudoC
+objdump -d -Mintel ./sorting | less #tells us exactly what cpu asked to do
+-d for disassemble 
+-S for source, to interwieve c source (works for linux, not wsl where executables are windows style)
+
+sudo apt update
+sudo apt install build-essential binutils gdb
+(build essentials give you gcc, make, stuff like that)
+(binutils gives you objdump, nm ld, etc)
+
+gcc -g -O0 main.c -o main (-g adds debug into, needed for source interleaving, and -O0 turns off optimization, so can easy match)
+
+Now, assembly is very hard to read and understand, so people at IDA made it work into pseudoC

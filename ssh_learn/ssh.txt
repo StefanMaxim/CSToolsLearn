@@ -1,0 +1,442 @@
+(PG 511 IN COMPTIA TEXTBOOK):
+
+Remote Administration: usually done via a command line interface on a server
+
+telnet: telnet command used in unix systems to obtain command line shell on remote server.
+for windows, use Putty, to start a telnet session to anouther computer.
+
+telnet command and daemon:
+need to install. telnet daemon managed by socket unit (telnet.socked), and on systems that 
+sysv, managed by inetd or xinetd.
+
+running telnet server1, which is a an ip, which you then enter root login and pass.
+
+
+
+
+
+
+
+
+Introduction to ssh and how it works:
+
+SSH is like telnet, but it encrypts the data traveling between the computers. replacement for telnet, rsh, rlogin, rcp COMMANDS
+
+thus, the sshd or ssh daemon, is installed by default on most linux machines. (NOTE: USUALLY INSTALLED, BUT NOT SET TO START BY DEFAULT)
+
+
+TO CONNECT:
+
+NOTE:
+running ssh appserver will connect you do the server, passing your username manually to the server, adn you will then be asked
+for a password.(IF YOUR CURRENT USERNAME DOESN'T MATCH SOMETHIGN ON THE SERVER, IT WILL FAIL AUTHENTICATION)
+
+if you want to log in using a different username, use ssh -l username appserver, or ssh user@appserver
+
+
+run ssh root@appserver, where root is the root username of the server, and appserver is the ip adress.
+
+NOTE: usually, you are used to user@ip_addr, but you can also just make it a name via magic adress that automatically updates
+(TO MAKE IT WORK WITHOUT THE IP, GO INTO YOUR SSH CONFIG AND CREATE A NEW HOST FOR THE DEVICE):
+
+
+
+# Global defaults (safe, handy on macOS)
+Host *
+    AddKeysToAgent yes
+    UseKeychain yes
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+# --- Your alias ---
+Host home_5090_desktop
+    HostName 100.111.116.24
+    User gc3
+    IdentityFile ~/.ssh/id_ed25519_linux_desktop
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+    Port 22
+
+This should work!!
+
+NOW, TRANSFERING FILES VIA SSH:
+
+scp -r to copy recurseively
+
+scp root@appserver:/root/sample /var #copies the file in remote /root/sample to the local /var directory
+
+#to copy visa versa:
+scp /root/sample root@appserver:/var #copies local file in /root/sample to teh remove /var
+
+
+
+#can also use the rsync:
+which can be used to also copy files across computers, but it doesn't recopy everyhting from scratch, just synced them.
+
+to do the same sync:
+
+rsync -e ssh /var/sample root@appserver:/root/bin to sync those two
+
+rsync -a -e ssh /data root@appserver:/data #will sync the two folders, or rather make the second look like the first.
+
+some stuff with windows servers, not useful:
+
+
+NOTE: since you set identities only to yes, be sure to make the files executable, ie
+chmod 600 the ~/.ssh/id_ed25519_linux_desktop
+(NO, THE BUG WAS THAT RUNNING SSH FROM THE SSH INSTANCE SHELL CANNOT RESOLVE THE
+ALIASES WHICH ONLY EXISTED ON MY MAC, THUS JUST COPY OVER THE CONFIG FILE)
+
+
+FOR SETTING UP SSH KEYS:
+big picture:
+need two keys: a public and a private key.
+the public key is shared with the server, and is held in .ssh/authorized_keys
+the private key is private (hense the name), and is stored on teh local computer.
+when you ssh, the remote checks if you have a private key that corresponds to its public key.
+
+to create a key:
+
+ssh-keygen -t ed25519 -f "~/.ssh/id_ed25519_linux_desktop" -C "mac->linux" to create the COMMANDS
+(good practice to ahve multiple public/private pairs in case of corruption)
+
+Your public and private keys are stored locally in your ~/.ssh folder under the name shown, 
+where one is .pub and the other isnt.
+
+from there, can either do:
+
+ssh-copy-id -i ~/.ssh/id_ed25519_linux_desktop.pub root@ipaddr
+
+or:
+cat ~/.ssh/id_ed25519.pub | ssh username@100.101.23.45 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+(this uses the ssh feature of copying files):
+ssh username@ipaddr cat /root/sample > /var/sample to transfer the /root/sample from remote to /var/sample local
+
+step-by-step:
+
+cat ~/.ssh/id_ed25519.pub | 
+this prints out the contents of the public key and pipes that into the standard input of anouther command
+
+ssh username@100.101.23.45 " … "
+this then opens an ssh shell on the remote and runs the stuff in quotes as a single command
+
+mkdir -p ~/.ssh && 
+this makes a directory called .ssh in the root directory, and the -p flag means no error
+if already exists.
+
+cat >> ~/.ssh/authorized_keys &&
+reads from the standard input, and appends that to the file ~/.ssh/authorized_keys
+
+chmod 700 ~/.ssh &&
+makes the .ssh folder perms to rwx------, which means only you can see this file
+
+chmod 600 ~/.ssh/authorized_keys
+makes the perms rw------- which is needed for ssh
+
+(NOTE, THIS DOES NOT CHECK FOR DUPLICATES)
+
+
+AS FOR THE DUPLICATES:
+
+the ssh agent is a small program that holds your decrypted ssh keys in memory so you
+dont have to retype your password every time you access them.
+
+eval "$(ssh-agent -s)" #will start an ssh agent
+
+ssh-add ~/.ssh/id_ed25519 #will add that private key into teh agent
+
+ssh-add -l #will list all currently loaded keys in the agent
+
+
+
+# Global defaults (safe, handy on macOS)
+Host * #the star is used to be used in general, ie global defaults
+    AddKeysToAgent yes #means that the second you use a key, it will be auto added to agent
+    UseKeychain yes #will also add the keys to your macos keychain (ONLY FOR MAC)
+    ServerAliveInterval 60 #every 60 seconds, it will send a keepalive packed to the server to prevent disconnect
+    ServerAliveCountMax 3 #after 3 of such packets, will auto disconnect
+
+# --- Your alias ---
+Host home_5090_desktop #the alias of the host you want to add
+    HostName 100.111.116.24 #the host address
+    User gc3 #the username, found via whoami
+    IdentityFile ~/.ssh/id_ed25519_linux_desktop #the location for the identity file to use
+    IdentitiesOnly yes #will ensure that you can only use the specified key (USUALLY WILL TRY ALL LOADED KEYS)
+    StrictHostKeyChecking accept-new # first time you connect, auto add host key to ~/.ssh/known_host 
+    Port 22
+# --- Macbook ---
+Host macbook
+        HostName 100.65.145.19
+        User stefancelmare
+
+        NOTE: host key is NOT THE SAME AS the authorized keys
+        authroized keys are how the server ids the user, whereas host keys are hwo the user
+        ids the server. host keys are in the servers ~/.ssh/host_key_ed25519 and in the cleints
+        ~/.ssh/known_hosts
+
+
+shasum -a 256 ~/.ssh/config to see if you did it correct.
+
+
+
+
+
+
+NOW FOR THE SETUP:
+
+sudo apt update && sudo apt install -y openssh-server # install the openssh-server daemon
+
+sudo systemctl enable ssh --now  #enables the ssh daemon 
+
+sudo systemctl status ssh | cat    # tells you what the status of ssh is on your computer
+
+sudo ufw allow 22/tcp
+sudo ufw enable    # if not already
+sudo ufw status
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#FROM THE TOP:
+
+
+first, you want to make sure that you even have ssh installed on teh machine:
+
+run: which ssh #if it returns no module found, then you are gonna have to install it
+
+sudo apt update && sudo apt install -y openssh-server (-y means automatically says yes to all commands)
+
+#now, it should be installed, check with which ssh
+
+NOW, we gotta make it allways running using systemctl:
+
+sudo systemctl enable ssh --now #will enabel the daemon
+
+sudo systemctl status ssh | cat  #just for linux, mac uses some other wierd stuff
+
+#NOW THE SERVER SHOULD EXIST AND BE RUNNING
+
+
+now that the ssh server is up and running on the server, we can ssh to it using:
+
+ssh user@ipaddr of server to ssh into that user for that ipadress
+if you just to ssh ipaddr, it will try with your current username (will change this later via configs)
+
+but it clearly works now, the ssh, so lets get the keys created:
+when SSHing, you need two keys, a public and private key. public is sent to server and appended
+to ~/.ssh/authorized_keys. private keys are stored locally at ~/.ssh/id_ed25519_linux_desktop
+and public is there too ad ~/.ssh/id_ed25519_linux_desktop.pub.
+
+to get the public key over, you can use a few tricks:
+
+1: scp 
+scp ~/.ssh/id_ed25519_linux_desktop.pub user@ipaddr:/home/gc3/.ssh/authorized_keys
+#ONLY THE FIRST TIME, SINCE USUALLY YOU WILL NEED TO APPEND:
+
+cat ~/.ssh/id_ed25519_linux_desktop.pub | ssh user@ipaddr "cat >> ~/.ssh/authorized_keys"
+#remember to check that .ssh exists and has strict perms.
+
+thus, the full way of doing it is:
+cat ~/.ssh/id_ed25519_linux_desktop.pub | ssh user@ipaddr "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"
+
+or the builting:
+
+ssh-copy-id -i ~/.ssh/id_ed25519_linux_desktop.pub user@ipaddr
+
+#lastly, make the ssh config file:
+
+Host *
+    AddKeysToAgent yes
+    UseKeychain yes
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+Host home_5090_desktop
+    HostName 100.121.116.24
+    User gc3
+    IdentityFile ~/.ssh/id_ed25519_linux_desktop
+    IdentitiesOnly yes
+    StrictHostKeyChecking accept-new
+    Port 22
+Host macbook
+    HostName 100.134.112.23
+    User stefancelmare
+
+
+Useful to know:
+scp:
+
+scp -r /root/source user@ipaddr:/root/bin wil copy recurseively from local to remote
+
+rsync -a -e ssh /bin/bash user@ipaddr:/bin/bash #will sync the remote directory to the local
+
+
+
+
+
+
+NOW, WE GOTTA SET UP THE VSCODE SERVER ON THE REMOTE, WHICH IT SEEMS TO BE BUGGING WITH.
+
+first, you gotta enable systemd in the wsl distro:
+
+in /etc/wsl.conf :
+[boot]
+systemd=true
+
+then wsl --shutdown, and check with systemctl is-system-running
+
+next, you gotta port forward the port 22 from windows to your port 22 in linux:
+
+in %USERPROFILE%\.wslconfig:
+[wsl2]
+networkingMode=mirrored
+
+then wsl --shutdown, and 
+sudo ufw allow 22/tcp || true (now, you can ssh on windows ip on port 22 and it will automatically forward to wsl)
+
+
+NOTE: if just closing the wsl windows kills the node, the distro isnt acutally booted with systemd as PID 1
+
+ps -p 1 -o comm= #tells you the first process beign run, should be systemd if it is up and running
+
+solution: make a scheduled task:
+
+first, use wsl -l -v will list all the distros you have verbose, to fidn your exact verions
+(DO THIS IN ADMIN POWERSHELL)
+$Distro = "Ubuntu-22.04"
+$Action = New-ScheduledTaskAction -Execute "wsl.exe" -Argument ("-d $Distro -- bash -lc  'true'")
+$Trigger = New-Scheduled-Task-Trigger -AtStartup
+$Principal = New-Scheduled-Task_Principle -UserID "SYSTEM" -RunLevel Highest
+Register-ScheduledTask -TaskName "WSL-$Distro-Autostart" -Action $Action -Trigger $Trigger -Principle $Principle
+
+also prevent the vm from going idle:
+in %USERPROFILE%\.wslconfig:
+[wsl2]
+vmIdleTimeout=-1
+
+
+
+
+
+SSH IN WSL:
+
+1: install wsl the standard WAS
+
+2: enable systemd, go to /etc/wsl.conf and in  (remember to use sudo vim for perms)
+[boot]
+systemd=true 
+
+3:wsl --shutdown to restart it
+
+4: install ssh via sudo apt install openssh server inside of the wsl distro
+
+5: then, configure it so wsl.exe task runs on boot:
+open task scheduler
+create task...
+triggers at startup action start a program
+program wsl.exe
+
+needs passwork for it to work: Micr2016*
+
+5: include port forwarding:
+in 
+C:\Users\<me>\.wslconfig
+
+[wsl2]
+networkingMode=mirrored
+
+
+Inside WSL, your Windows C: drive is mounted at /mnt/c, so the file:
+
+C:\Users\<YourName>\.wslconfig
+
+becomes:
+
+/mnt/c/Users/<YourName>/.wslconfig
+
+
+
+COPYING FILES:
+
+scp user@remote_host:/path/to/remote/file /path/to/local/destination
+
+scp rig_remote:/home/gc3/Documents/code/NvidProject/dinov2_cs_14_cuda_11Aug2025.ipynb \
+"/Users/stefancelmare/Library/Mobile Documents/com~apple~CloudDocs/Purdue/Freshman/CS_159/"
+
+
+
+
+
+
+
+
+
+
+
+NEW STUFF:
+
+sshing in to a VM inside of a machine.
+
+1: setup ssh server in teh vm as per use
+
+2: Set up port forwarding from the VM to the Host machine.:
+
+In virtualbox, go to networking, under adapter1, enable network adapter and switch to NAT
+
+then, go to advanced, then port forwarding, and set up a new rule:
+(REMEMBER: HOST = windows computer running virtualbox, GUEST = ubuntu VM inside virtualbox)
+
+Field	Value
+Name	ssh
+Protocol	TCP
+Host IP	(leave blank) or 127.0.0.1
+Host Port	2222
+Guest IP	(leave blank)
+Guest Port	22
+
+then, running:
+
+ssh -p 2222 your_vm_username@127.0.0.1
+
+The SSH client on the host:
+
+Uses the SSH protocol
+
+Connects to 127.0.0.1 (the host itself)
+
+On port 2222 (because of -p 2222)
+
+VirtualBox NAT port forwarding then says:
+
+“Any TCP traffic to host:2222 → send it to guest:22”
+
+Inside the guest VM (Ubuntu):
+
+The SSH server (sshd) is listening on port 22
+
+It receives that forwarded connection and logs you in as user
+
+
+can also use bridged adapting to make it behave as just another machine on your lan
+
+
+
+Primitive start in networking:
+

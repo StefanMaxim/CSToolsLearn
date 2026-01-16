@@ -1,0 +1,16 @@
+Host *
+	AddKeysToAgent yes
+	UseKeychain yes
+	ServerAliveInterval 60
+	ServerAliveCountMax 3
+Host home_5090_desktop
+	HostName 100.111.116.24
+	User gc3
+	IdentityFile ~/.ssh/id_ed25519_linux_desktop
+	IdentitiesOnly yes
+	StrictHostKeyChecking accept-new
+	Port 22
+Host macbook
+	HostName 100.65.145.19
+	User stefancelmare
+	
