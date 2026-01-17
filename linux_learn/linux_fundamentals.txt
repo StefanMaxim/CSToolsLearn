@@ -1,4 +1,47 @@
 NOTE:
 
 bash vs tmux:
-tmux isnt a separate terminal, but rather a terminal multiplexer that runs ontop of the bash shell
+tmux isnt a separate terminal, but rather a terminal multiplexer that runs ontop of the bash shell:
+
+Start from the basics:
+
+Kernel: The core of the operating system.
+it schedules cpu time, memory allocation, etc
+NOTE: programs do not interact directly with hardware! instead they query the kernel to do it for them via system calls
+(calls directly to the kernel)
+
+
+Shell: a program that lets you control the operating system (reads your commands and starts programs)
+Exe:
+launches programs like python, ssh, or other things like that (which are executables btw)
+piping / redirection: cat a | grep x > out.txt 
+managed environment variables like PATH and HOME (more or that later)
+common examples like bash or zsh
+
+Terminal:
+The window that displays the text input/output.
+
+All together: opening a terminal opens a text session (PTY)
+That starts your shell (zsh / bash)
+shell runs commands like python or ssh
+these commands ask the kernel to do work for them (ie allocate me some memory and compute this for me)
+
+
+Now, lets give a FULL view of what happens when you type something in the terminal:
+exe, when I write "echo 'hello world'" how does that output on my screen hello world?
+
+First, a few more definitions:
+
+process: 
+The running program (its code) PLUS
+
+An Address Space, which is just the virtual memory adresses that were given to the process for use PLUS
+kernel-managed resourses (like open files, or sockets)
+Note: when running a program, two types of resources: user space resources adn kernel space resources
+Files, when opened, are put in a kernel file table that has an associated file descriptor (which is given to teh program)
+alongside other stuff like current file offset, perms, and the actual file contents in a buffer somewhere
+
+Sockets: 
+
+
+

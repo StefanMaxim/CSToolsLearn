@@ -286,11 +286,34 @@ Host macbook
 
 
 Useful to know:
-scp:
+
+scp: secure copy protocol, format is:
+
+to copy from local to remote (all from the viewpoint of the local)
+
+scp ~/Documents/file remote@ipaddr:~/Docs/file
+(this takes a file on your mac with location /Documents/file and moves it to the remote's location /Docs/file)
+
+scp remote@ipaddr:~/Docs/tester.py ~/Documents/file.py
+(this moves the file located in the remote's /Docs/tester.py and puts it in your local /Documents/tester.py)
+
+(NOTE: the -r flag means recurseively, which is used for transferring directories)
 
 scp -r /root/source user@ipaddr:/root/bin wil copy recurseively from local to remote
 
+
+
+
+
+
+
 rsync -a -e ssh /bin/bash user@ipaddr:/bin/bash #will sync the remote directory to the local
+
+
+
+
+
+
 
 
 
