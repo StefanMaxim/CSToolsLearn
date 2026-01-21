@@ -309,7 +309,15 @@ scp -r /root/source user@ipaddr:/root/bin wil copy recurseively from local to re
 
 rsync -a -e ssh /bin/bash user@ipaddr:/bin/bash #will sync the remote directory to the local
 
-
+rsync -avh -e ssh user@host:/path/src dest/
+-a is archive, ie preserve perms/times, recurseively
+-v is verbose 
+-h is human readable sizes
+--progress is show progress
+--delete makes dest match src
+-n is dry run
+-e means you choose the remote shell/transport uses when dest or soure is remote
+ie -e "ssh -i ~/.ssh/id_ed25519" SRC/ user@host:/
 
 
 

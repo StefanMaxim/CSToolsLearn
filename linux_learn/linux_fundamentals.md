@@ -39,6 +39,47 @@ a split region inside a window, (ie left pane runs code, right pane watches htop
 > we will denote command + b as just C-b for short, so C-b % is actually command b then %
 
 
+
+> **CRUTIAL 2**
+
+WHY does code . work outside of TMUX whereas it breaks inside of tmux?
+Reason: the vscode server created (/run/user/2256949/vscode-ipc-...sock) **IS NOT** STABLE ACROSS LOGIN SESSIONS  
+this means that this socket(more on that later) is only valid for the current session created
+(vscode works by creating a node.js process, a unix domain socet at /run/user/uid, and env variables pointing to it)
+
+OKAY, but they where is the problem:
+when you write `tmux new -s work`, it copies over the env variables from the OG shell and doesnt update them
+thus, when using a new shell or connecting back again, your old vscode server(the on which is linked in your
+frozen env variables) is no longer the correct server, making the connection invalid.
+
+There is a new server with its own new socket path that your current tmux session doesnt have access to
+
+```bash
+VSCODE_IPC_HOOK_CLI=/run/user/2256949/vscode-ipc-OLD.sock
+XDG_RUNTIME_DIR=/run/user/2256949
+```
+
+> TEST:
+
+RUN INSIDE OF TMUX
+```bash
+env | grep VSCODE
+```
+
+RUN OUTSIDE IN THE SHELL
+```bash
+env | grep VSCODE
+```
+
+
+> **SOLUTION**:
+1. kill the old session and make a new one each time
+
+2. manually change the variable:
+```bash
+tmux set-environment -g VSCODE_IPC_HOOK_CLI "$VSCODE_IPC_HOOK_CLI"
+```
+
 ### Commands:
 
 - tmux new -s work //starts a new named session called work
