@@ -187,6 +187,11 @@ WRONG!!! because of the aformeantioned virtual memory, each process has its own 
 infact, a process can have multiple threads each with their own stack
 
 
+> **NOTE**
+> Inside of a single process, there is a shared address space (virtual memory space) that is shared by all the threads
+> BUT ALSO, a separate CPU register state where the RIP and RSP and stack are stored for each thread.
+
+
 
 #### A Process ID and Metadata
 Each process has a PID, or process ID that allows the computer to keep track of all of them

@@ -132,36 +132,10 @@ Then when returning just add back N followed by 8 bytes, and you effectively pop
 
 
 
+Putting it all together:
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-THE STACK = a contiguous region in memory reserved for this purpose, and a register that points to it
-NOTE: this register is called RSP, and by "points to it" i mean it contains the memory address of the beginning
-of the first frame.
-
-Thus, at any moment, RSP tells you the top of the stack. 
-NOTE: the stack "GROWS DOWNWARD", meaning the more you push onto it the lower the memory goes:
-PUSH: decrease SP then store 
-POP: load, then increase SP.
-
-
-
-
-
-
-
-Okay, now that we got that out of the way, lets discuss the idea of the entire system from 
-typing LS in the terminal to it doing something:
