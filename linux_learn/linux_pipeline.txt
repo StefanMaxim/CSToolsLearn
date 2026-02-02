@@ -129,6 +129,14 @@ N1
 Then when returning just add back N followed by 8 bytes, and you effectively popped that away.
 
 
+NOTE 1: the RSP points to the place where the locals are stored (assuming you allocated a stack frame for them)
+IT DOES NOT POINT TO THE ADDRESS, since first you push the address, then the locals space
+
+NOTE 2: you are NOT!!!1 pushing the RIP into the STACK, you are pushing the RETURN ADDRESS, which is one address afterward
+or the next place 
+
+return_address = address_of_call + length_of_call_instruction
+
 
 
 
