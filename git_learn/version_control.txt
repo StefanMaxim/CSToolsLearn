@@ -117,8 +117,17 @@ git remote add <name> <url> // used to add remotes, name usually origin if only 
 git remote remove <name>
 git push <remote> <local branch>:<remote branch> // pushes local changes to remote, creating/setting a branch named remote branch to point to where local branch is pointing
 git branch -vv
-git remote set-head <name> EXE: git remote set-head origin master (sets the symbolic reference to master)
+git remote set-head <name> EXE: git remote set-head origin master (sets the symbolic reference to master) (-d flag deletes the sym ref)
+
+NOTE: this does NOT push this change to the remote, you must go and push this head update to teh remote
+
+(NEED TO UNDERSTAND HOW TS WORKS!!!)
+
+
+
+
 git remote set-branches <name> <branches> // This is used to change the list of currently tracked branches by the remote
+git remote prune origin, --dry-run // to see what it would prune, aka remove stale remote-tracking branches (WHATEVER THAT MEANS)
 
 HOW TO REMOVE BRANCHES FROM THE REMOTE:
 
@@ -146,7 +155,27 @@ git pull origin main does the same thing, pulling from origin main and setting t
 
 
 git push --prune remote: removes all remote branches that do not have a local branch with the same name
+git fetch --prune //removes references not in the remote!! (KEY!! IT LOOKS LIKE NOTHING IS CHANGING BC IT WILL NOT REMOVE UNLESS YOU PRUNE)
+
 git push --all pushes all branches
+git push -u origin main, will set upsteam to that branch of the same name on the remote
+git push origin -d main //removes the main reference from the remote
+git push origin -mirror // mirrors all listed refs, specify which refs under /refs/ (including refs/remote) to mirror on the remote side!!!
+(kind of like a push -all, where it pushes all refs to the remotes)
+
+
+CRITICAL:
+
+git push origin origin/HEAD:refs/heads/HEAD NOTE: if the reference is in refs/head or refs/tags, add refs/ before to be more clear
+
+how to see from remote's perspective:
+
+git push -f origin dog main , useful when moving back the origin or doing other non-trivial fast-forward changes.
+
+
+
+
+git branch -d origin/main --remote
 
 
 TO MOVE A BRANCH:
@@ -157,6 +186,22 @@ git update-refs refs/heads/main <where to make it point to: id/ref>
 
 
 git branch -d --remote <branchname> //will remote a branch on the remote (seems to only be on the local one)
+
+
+
+
+
+
+REDO WITH CHAT HELP--- all about remotes in GIT:
+(nvm i got it pretty much)
+
+
+
+
+
+
+
+
 
 
 
@@ -185,7 +230,7 @@ y - stage this hunk
                k - leave this hunk undecided, see previous undecided hunk
                K - leave this hunk undecided, see previous hunk
                s - split the current hunk into smaller hunks
-               e - manually edit the current hunk
+               e - manually edit the current hunk  SUPER USEFUL!!!!!1
                p - print the current hunk
                ? - print help
 
