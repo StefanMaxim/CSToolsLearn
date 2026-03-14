@@ -32,6 +32,7 @@ git help <instr> gives info on a specific git COMMANDS
 git status //tells you things like what is in staging area and what branch you are in
 git add  hello.txt //adds hello.txt to staging area
 git add :/ //adds all files in working dir to the staging area
+git add -A //adds all files in working dir as well
 git commit //creates a commit with the current working dir from the last commit (using head)
 git commit -m "msg" //commits with a message builtin
 git commit -a //commits all changes to currently tracked files
@@ -59,24 +60,27 @@ git checkout <ref/id> changes the directory to the state it was in a different c
 //ONCE A PATH IS COMMITTED AT SOME POINT, IT IS NOW A TRACKED FILE. THIS WAY, YOU CAN REMOVE IT SAFELY SINCE IT IS NOT
 // A WORKING DIRECTORY CHANGE. (NOTE: file must be committed to be tracked, adding it to index not enough)
 
-
-
-
 git diff hello.txt //compares state of file hello.txt FROM WORKING TREE TO INDEX
 git diff -a //does this for all files tracked.
 git diff <sha1id> <filename> compares cwt with the commit for the file
 git diff HEAD hello.txt // compares cwd with head for hello.txt
 git diff <id1> <id2> <filename> //compares how to get from id1 to id2 for filename
 
+
+
+
+
+
 //now the branch stuff:
 git branch //lists all the branches in your repository
 git branch -vv //lists it extra verbose, with the commit they correspond to and any upstreams
 git branch <branchname> //creates a new branch names branchname where you currently are
 git checkout -b <branchname> //creates and checks out a branch named branchname
-git branch -m oldname newname // to rename branches
+git branch -m oldname newname // moves branches, like mv (can be used to rename)
 git branch -M main // renames current branch to main forcefully
 git branch -d branchname //used ot delete local branches merged with other branches
 git branch -D branchname //used to force delete branches
+git branch -c branch name copies a branch along with its config and reflog (NOTE: all moves, deletes, and copies are in place, meaning its functionaly renaming)
 
 //now the merge stuff:
 git merge branchname //merges the branch you are currently on with branchname branch. (use git status to see merge conflict)
@@ -110,8 +114,20 @@ cd remote
 git init --bare
 
 git remote add <name> <url> // used to add remotes, name usually origin if only one, and url can be path if local
+git remote remove <name>
 git push <remote> <local branch>:<remote branch> // pushes local changes to remote, creating/setting a branch named remote branch to point to where local branch is pointing
-git branch -vv 
+git branch -vv
+git remote set-head <name> EXE: git remote set-head origin master (sets the symbolic reference to master)
+git remote set-branches <name> <branches> // This is used to change the list of currently tracked branches by the remote
+
+HOW TO REMOVE BRANCHES FROM THE REMOTE:
+
+
+<name> is the list of all of the branches that will remain tracked, with everything else being removed
+--add flag will make it add those references, rather than remove them
+
+
+
 git push origin main:main
 git push -u origin main. will push and set upstream of local main to remote main,
 
