@@ -195,8 +195,26 @@ git branch -d --remote <branchname> //will remote a branch on the remote (seems 
 REDO WITH CHAT HELP--- all about remotes in GIT:
 (nvm i got it pretty much)
 
+The idea: there are two different things:
 
+1: the repository head on the server (HEAD)
+2: the symbolic reference origin/HEAD on the local machine (a local reference created by fetch/clone)
 
+when it doesnt work:
+when creating a bare repo with git init --bare, the HEAD is initialized to point to refs/heads/main or something
+but if you do git push origin main:master, there will be a refs/heads/master created, but still no refs/heads/main, so when initializeing,
+it will point to a non-existant place.
+
+To change, run this inside of the repo:
+git symbolic-ref HEAD refs/heads/master , telling it to point to it on the repo side (change in github settings, by default head is /refs/heads/main)
+
+the origin/HEAD however, is created locally after a fetch/clone when the remote announces its head. (SEE WITH git branch -r, to see remote tracking branches)
+the set
+
+git remote set-head origin main changes the local symbolic reference, usefull for changing default branch on head for 
+git diff origin, which compares your CWD with the HEAD of origin
+git merge origin, merges your current checked out branch with the head of origin.
+git diff origin --cached, will compare your index to the head of origin
 
 
 
@@ -255,6 +273,8 @@ git bisect // used to search history. look into later
 .DS_Store
 *.o
 " means ignore files with .DS_Store, and all files ending in .i
+
+git_learn/git_practice/, do not include the ./ or it wont detect it. if file, just put the / at the end
 
 
 
