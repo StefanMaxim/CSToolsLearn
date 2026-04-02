@@ -201,7 +201,7 @@ The idea: there are two different things:
 2: the symbolic reference origin/HEAD on the local machine (a local reference created by fetch/clone)
 
 when it doesnt work:
-when creating a bare repo with git init --bare, the HEAD is initialized to point to refs/heads/main or something
+when creating a bare remote with git init --bare, the HEAD is initialized to point to refs/heads/main or something
 but if you do git push origin main:master, there will be a refs/heads/master created, but still no refs/heads/main, so when initializeing,
 it will point to a non-existant place.
 
@@ -216,6 +216,10 @@ git diff origin, which compares your CWD with the HEAD of origin
 git merge origin, merges your current checked out branch with the head of origin.
 git diff origin --cached, will compare your index to the head of origin
 
+(TO CHANGE ON GITHUB: )
+1: go to your repository settings on github
+go to settings, General, and default branch
+3: change default branch, select master, Update
 
 
 
@@ -316,3 +320,147 @@ to pull from your local to update the remote (functionally a push from the local
 * c7a823d first commit of lb07
 
 
+
+
+**NOTE**
+what if you accidentaly push the wrong thing to remote? can you change your DAG?
+
+(if its the last commit)
+git reset --hard HEAD~1 (moves your local branch back 1 commit(locally))
+git push origin main --force
+
+##MORE THAT LAST COMMIT:
+git rebase -i HEAD~5
+(this opens an editor showing last 5 commits, can drop a bad commit or edit it)
+git push origin main --force
+
+git rebase:
+used to move or combine a sequence of commits onto a new base commit.(lets you re-write history)
+
+
+
+
+(NOTE: after a git push --force after a rebase, you must reset their local branch):
+git fetch origin
+git reset --hard origin/feature
+(what this does: moves your current branch to point to a different commit)
+1: moves the HEAD(your current branch to new commit) (RECALL, HEAD POINTS TO A REF THAT PTS TO A COMMIT, OPERATIGN ON HEAD = OPERATING ON REF = ON COMMIT)
+2: updates staging area(index reset)
+3: updates working directory (all changes replaced with state from last commit)
+(--hard means not only move head to that current branch ptr, but also make your working dir match that commit)
+
+
+EXE:
+
+you have:
+
+A <- B <- C (but realize mistake on B)
+
+git rebase -i HEAD~2 (remove B)
+git push --force main (now remote looks like)
+
+A < C`, so does your local
+
+friend has:
+
+A <- B <- C. (origin/main, main)
+suppose they git fetch (pulls all missing commits + update referemces and DAG)
+
+A <- B <- C (main)
+\
+C` (origin/main)
+
+to fix this, you git reset --hard origin/main (this will make main look just like origin/main, discarding commits that are diff)
+
+A -- C` (main, origin/main)
+
+
+
+
+
+
+
+
+
+
+
+git rebase --abort (stops teh rebase and returns to og branch state)
+git rebase --continue (after solving conflicts)
+
+
+
+EXE:
+(origional)
+A -- B -- C (main)
+      \
+       D -- E (feature)
+after git checkout feature
+git rebase main (rebase functionally squeezes them into a single branch(linear)) (by defalt it makes it so feature continues after main)
+
+A -- B -- C -- D` -- E` (new commits, ontop of main)
+
+What does rebase actually do:
+Fundamentally, given some stack of commits
+A <- B <- C (HEAD), you are taking some commits from the stack, and replaying them on top of another commit 
+(exe take B and C, and replay them onto some other stack)
+D <- E <- B <- C (but its more precise than just that)
+(same changes, different parents)
+
+EXE:
+main:
+A <- B <- C 
+
+feature:
+
+A <- B <- D <- E (HEAD)
+
+when you type: git checkout feature_branch, git rebase main:
+first, it finds the fork point, B, 
+then, take all commits on feature_branch after C (D and E)
+then, it temporarily removes them
+then, it replays them on top of main's head (B or newer, in this case C) as new commits D` and E`
+
+result:
+(recall, git merge branch1 will merge FROM branch1, meaning it will combine your changes from branch1 into your current_branch, likely main )
+GIT MERGE BRANCH1, BRANCH1 DOES NOT CHANGE
+
+(rebase is the same, it will rebase from the chosen one, so git rebase main doesnt change main!!)
+
+main:
+
+A <- B <- C (unchanged)
+
+A <- B <- C <- D` <- E` (where D` is the new commit from C to B) (git rebase main = rebase head so that it is as if it came after main)
+
+
+what about:
+
+git rebase -i HEAD~5 (rebases from HEAD to HEAD~5, meaning make HEAD as if it were after HEAD~5 instead)
+strat: find fork pt: 5 commits ago 
+then, find the ones in your feature(HEAD) that are after it (commits 4ago to most recent)
+then removes temp and lets you interactively work on them (edit, re-order, squash, or drop them)
+then re-applies them one by one on top of B as new commits
+
+
+
+
+
+
+ANother fun command: cherry-pick (lets you apply a single commit from another tree without merging)
+
+
+## TAGS IN GIT
+git tag <tagname> lets you mark commits for release/reference
+
+(tag =  named pointer to a commit that does not move)
+
+(used to mark important pts in history, like milestones)
+
+A <- B <- c
+     |
+     (tag: v1.0)
+
+git tag lists all tags
+git show v1.0 shows the commit it pts to
+
+(can checkout tags, to make a detached head and then git branch to make a new branch)
