@@ -40,3 +40,18 @@ git fetch upstream
 git merge upstream/main (merges your currently checked out branch with upstream/main)
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+
+# Programming Practices:
+how to ppl just know to use src bin all taht stuff in a coding project
+im looking at it and it looks like a bunch of stuff (use claude code directory as exe)

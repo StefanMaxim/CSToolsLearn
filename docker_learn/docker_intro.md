@@ -81,3 +81,12 @@ Engine Install:
 ## Docker Volumes + Bind Mounts
 
 To ensure persistance, use docker volumes
+
+
+
+## NOTE
+
+sudo systemctl start docker
+sudo systemctl enable docker --now
+sudo systemctl stop docker
+sudo systemctl disable docker
