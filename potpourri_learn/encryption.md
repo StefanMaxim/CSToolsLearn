@@ -120,6 +120,7 @@ step left = 0
 
 this way, more commonly appearing symbols are naturally at the top of the tree.
 less common is at the bottom
+(CHARACTER ENCODING)
 
 ## stage 2
 
@@ -138,6 +139,72 @@ read, instead use 2 numbers, one indicating how far back to look and how many ch
 
 Never gonna give you up <24,12>let<23,5>down<25,13> (then, when de-compressing, just loop back and copy the chunks back into place)
 (algorithm called LZ77)
+
+(DICTIONARY BASED ENCODING)
+whats before youve encoded= dictionary
+whats after = what you still have to encode
+words by repeatedly finding the largest repeat from what came first with what you will have to put in later
+
+
+more precise:
+given: abcabcabc
+
+first:
+step 1:
+seen = ""
+remaining "adcabcabc"
+no matches yet, so outputs literal (0,0,'a') //a is the next char after the match
+
+step 2:
+seen = "a"
+remaining "bcabcabc"
+no matches, another literal (0,0,'b')
+
+step 3:
+seen = "ab"
+remaining = "cabcabc"
+no matches, lit (0,0,'c')
+
+step 4:
+seen = 'abc'
+remaining = 'abcabc"
+matches, so (3,3,'a') //only a bc its the next character after the match NOTE: technically for all the others, its still the next char after the match!
+
+step 4:
+seen: "abcabc"
+next: bc
+match! (2,2,NULL) //NULL bc that the next character after the match!
+
+in teh end:
+
+(0,0,a), (0,0,b), (0,0,c), (3,3,a), (2,2,NULL) this series of triples can be decoded to work for any string!
+
+WHY (offset, length, char)
+offset = used to see how far to go back
+length = used to see how much to copy
+char = used so worst case can copy one character
+
+In decoding: doesnt store the seen and next as strings, just processes the triples incrementally
+it uses the output so far as its dictionary, used for seeing what is meant by the first 2 element in the triple
+
+In decoding: doesnt need separate string, just used the input string, but partitions it into 2 parts:
+sliding window and the lookahead buffer
+[sliding window | lookahead buffer], where the sliding window moves int that range and the lookahead buffer shrinks every time a new 
+triple is created.
+this is done via pointers / indicies
+
+Step-by-step:
+
+The encoder looks at the first character in lookahead, say 'a'
+It searches the sliding window for matches of the sequence starting at 'a'
+It compares character by character:
+For each position i in sliding window:
+    Compare window[i:i+length] with lookahead[0:length] //will incremement
+If it finds the longest match, it outputs (offset, length, next_char)
+Then it advances the sliding window by length + 1 (match plus next char)
+Repeat for the new position
+
+
 
 
 ## Stage 3

@@ -134,3 +134,5 @@ Subclusters, or the worker nodes:
 this is where the actual work gets done, and output returned to the front node 
 
 (gotta read this and familiarize self:https://www.rcac.purdue.edu/knowledge/gilbreth/overview)
+
+(Basic idea: via SLURM, you generally pass it to sbatch, somethign like sbatch job.sh, a shell file with what it has to do, ie what to run)

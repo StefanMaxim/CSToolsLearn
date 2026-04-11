@@ -79,6 +79,8 @@ env | grep VSCODE
 tmux set-environment -g VSCODE_IPC_HOOK_CLI "$VSCODE_IPC_HOOK_CLI"
 ```
 
+Solution: ssh, then open the tmux 
+
 ### Commands:
 
 - tmux new -s work //starts a new named session called work

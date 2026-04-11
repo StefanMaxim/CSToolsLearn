@@ -170,3 +170,55 @@ sudo apt install nodejs
 can also install nvm, or node version manager, which can be used to allways have the latest node and npm
 
 npm install -g @openai/codex
+
+
+
+
+## Full Clarified Workflow using agents (researched):
+
+Again, the split is:
+ChatGPT: Project Manager / Spec Writer
+Claude: Critical Reviewer / Debugger / Second Oppinion
+Codex: repo-aware implementor
+
+Plan (ChatGPT) → Ground with Repo (Codex) → Think (Claude) → Build (Codex) → Critique (Claude)
+
+## Stage 1: turn the idea into a tight spec
+
+cannot just ask claude: build me an app that...
+
+Start by making an engineering brief of the task at hand:
+
+- goal
+- users
+- scope
+- non-goals
+- constraints
+- acceptance criteria
+- rollout risks
+
+This is CRITICAL:
+**NOTE** long-running code agents do better when target is frozen in writing.
+The models like it when in the repo there exists a file they can repeatedly reference, titles
+Prompt.md or SPEC.md or PLANS.md, which contain the actual summary of what must get done
+
+ChatGPT's projects are perfect for this type of work:
+lets you organize chats and coding for a related task together, makes it easier for chat ot work its magic
+
+## Stage 2: Save the Specs to the Repo
+
+Create a file like SPEC.md or PLANS.md in the repository. Include:
+
+- feature summary
+- hard constraints
+- examples
+- definition of done
+- test expectations
+- rollout notes
+
+
+## Stage 3: ask CLAUDE to make an implementation plan
+Okay, you have the idea, in a clear summary, now use claude, which is great at seeing context in your repo to make an inplementation plan
+
+
+## then use Codex to actually implement

@@ -65,7 +65,7 @@ git diff -a //does this for all files tracked.
 git diff <sha1id> <filename> compares cwt with the commit for the file
 git diff HEAD hello.txt // compares cwd with head for hello.txt
 git diff <id1> <id2> <filename> //compares how to get from id1 to id2 for filename
-
+git diff --staged myfile //compares index with a commit, by default HEAD
 
 
 
@@ -271,7 +271,7 @@ git stash pop //returns working directory back to normal, undoing the caching of
 
 git bisect // used to search history. look into later
 
-.gitignore // used to tell git which files to ignore:
+.gitignore // used to tell git which files to ignore: REMEMBER TO ADD THE .GITIGNORE TO THE DIRECTORY!
 :
 "
 .DS_Store
@@ -441,6 +441,11 @@ then, find the ones in your feature(HEAD) that are after it (commits 4ago to mos
 then removes temp and lets you interactively work on them (edit, re-order, squash, or drop them)
 then re-applies them one by one on top of B as new commits
 
+by itself, git rebase -i will do an interactive rebase from teh currently checked out branch to its upstream breanch:
+
+when you git branch -vv, it shows the upstreams
+(THIS IS THE --set-upstream-to= stuff, ie main likely has its upstream to origin/main)
+
 
 
 
@@ -464,3 +469,76 @@ git tag lists all tags
 git show v1.0 shows the commit it pts to
 
 (can checkout tags, to make a detached head and then git branch to make a new branch)
+
+
+EXE:
+incorrect merge
+
+main: A-B-c
+feature: X-y
+
+merge:
+main: A-B-C-M
+feature: X-Y
+
+then pushed main, which will update teh remote's origin/main 
+
+remote:
+origin/main:A-B-C-M
+origin/features: X-Y 
+
+the total tree, when you git fetch and see the travesty:
+
+A-B-C(main)-M(origin/main) 
+X-Y(feature/origin/features)
+
+here, you should (assuming you want to remove the merge commit, and that it was pushed (locally just git reset --hard HEAD~1))
+
+1: can create a new commit that undoes the change using git revert -m 1 <merge_commit_head>
+
+2: can just reset your local tree, thereby removing the new funky one
+git reset --hard origin/main main
+git push --force origin main
+
+
+reset will:
+1: move the branch pointer (HEAD) to teh specified commit
+2: updates teh staging area by discarding it
+3: updates the working directory to match the commit (--hard permanently discards changes in working dir)
+(the commits that are now "dangling" are still in teh repo, can recover via git reflog to find them, but they are basically gone from view)
+
+git push --force origin main
+normal git push origin main will try to fast-forward main if possible (works if local has all the commits of the remote)
+--force flag does not check for divergent history.
+just makes the remote branch point to exactly the same commit as yoru local branch, discarding any commits on teh remote not
+in teh local branch 
+
+EXE:
+
+main: A,B,C(main, origin/main)
+feature: X,Y
+if I remove teh commit, c
+git reset --hard <B> 
+
+it will look like 
+
+A, B(main), C(origin/main)
+
+then, when I git push --force origin main:main, it will: 
+make the remote branch origin/main look just like the local 
+
+so it will be 
+
+A, B (main, origin/main) ,(c is missing, bc dangling so not displayed. can still be found using git reflog)
+X,Y (feature, origin/feature)
+
+and the remote look slike
+main: A, B (since the force flag forces the removal of C)
+feature: X,Y
+
+
+
+
+NOTES ABOUT FEATURES OF GIT:
+tracked files are specific for each branch:
+you can create a new branch, and then remove to your heart's content 
