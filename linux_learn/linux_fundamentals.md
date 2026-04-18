@@ -131,6 +131,63 @@ but they can also refer to:
 ## System Info
 
 ## Compression
+Compression + Combining happens via 2 methods:
+Combine files = tar, compress = gzip
+
+tar: tape archive, bundles multiple files + folders into one file, preserving directory perms and timestamps
+
+tar -xzf filename.tar.gz //order is what you want to do (X) filter (gzip compression), and file
+
+Action Tasks:
+-c create archive, used to create new archives of files (combine them)
+-x extract archive, used to create the normal directory structure from the tar.gz
+-t lists the contents inside the file without extracting
+
+File flag:
+-f tells tar which file to use
+
+Compression Flags
+-z uses gzip, either for compression or decompression
+-j bzip
+-J xz compression (LZMA compression)
+
+-v verbose
+
+tar -czf archive.tar /folder
+(results is called TARBALL)
+
+**A tar archive (tar) stores:**
+
+filenames
+directory structure
+file contents (bytes)
+basic metadata (permissions, timestamps, owner IDs)
+(this makes it OS-indepentant, ie can compress and create on linux and decompress on mac)
+
+Tarballs = Universal , tar is OS-based but abstracts away OS specific details
+
+to work, it uses syscalls like open() read() write() mkdir() chmod() when on POSIX compliant systems like mac and linux
+
+
+
+
+
+
+gzip: compresses a single file using the DEFLATE algorithm
+
+gzip file //comrpesses it via gzip
+gzip -d file //de-comrpesses the file
+gzip -k file //**CRUTIAL** ZIP DELETES THE ORIGIONAL FILE, SO THIS MAKES SURE TO KEEP IT
+gzip -c file //does not modify file, instead writes compressed version to stdout
+
+gzip -c file >> file.gz
+or -dc
+
+-v verbose
+-r recursive compression (USEFUL)
+
+
+
 
 ## Network
 

@@ -184,6 +184,23 @@ offset = used to see how far to go back
 length = used to see how much to copy
 char = used so worst case can copy one character
 
+### Confusion
+> **NOTE** MAJOR CONFUSION:
+the triple standard is just for teaching, and it the way it was proposed as the algorithm, but isnt how its implemented:
+
+in reality, the LZ77 used in things like DEFLATE writes it in 2 different formats:
+THERE ARE 3 PARTS HERE:
+1: LZ77 used to find patterns
+2: DEFLATE turns the patterns into symbols
+3: Huffman turns symbols into bytes
+
+exe: given abcabca
+after lz, becomes:
+abc(3,3)a
+
+
+
+
 In decoding: doesnt store the seen and next as strings, just processes the triples incrementally
 it uses the output so far as its dictionary, used for seeing what is meant by the first 2 element in the triple
 
@@ -203,6 +220,135 @@ For each position i in sliding window:
 If it finds the longest match, it outputs (offset, length, next_char)
 Then it advances the sliding window by length + 1 (match plus next char)
 Repeat for the new position
+
+
+
+
+
+
+
+
+
+
+### BETTER EXPLANATION FOR LZ77 DICTIONARY BASED ENCODING
+DEFLATE = LZ77 + Huffman Encoding
+
+process overview:
+input stream
+LZ77 finds repeated substrings and references
+symbol stream finds literals or length-distance pairs
+Huffman Encoding: entropy compression ()
+bitstream
+
+GZIP = wrapper around DEFLATE:
+adds header with metadata and footer with stuff like length
+
+#### Phase 1 LZ77:
+uses sliding window model
+[already processes | lookahead buffer]
+(lookahead = new bytes to encode, searches buffer/past to see what already encoded up to 32 kb)
+
+It produces a sequence of:
+
+1:  Literal Bytes (exe: 'A')
+2:  Length-Distance pairs (length = 5, distance = 12) means copy 5 bytes from 12 bytes ago
+
+EXE: ABCABCABC -> ABC(6,3)
+
+> WAIT, Why (6,3)?
+the way it works low-level:
+if currently at i:
+find largest match between:
+1. A substring starting at i AND
+2. A substring starting at j<i (CRUTIAL)
+
+so, for ABCABCABC, now that we are at ABC(here,A)BCABC
+largest starting at i is ABCABC, where j=0 (start of the buffer)
+thus, j starting at 0, and then at i, length is 6, and start back is 3
+NOTE: this is okay to do because the DECODER works one byte at a time:
+so when it sees ABC(6,3), it starts 3 back, and then starts copying over 6, but by the time its done with the first ABC, there are another 3, 
+and it just copies those over too!
+
+> NOTES ON ENCODING:
+max distance = 32kb
+length range (3 to 258) (not worth encoding under 3)
+
+#### Phase 2, Symbol Stream
+started with: ABCABCABC
+got: ABC(6,3)
+CRUTIAL NOTE: recall, we are not encoding just characters, but bytes as a whole!
+
+the actual input is just a bytestream, so 
+ABCABCABC = 65 66 67 65 66 67 65 66 67, where the "numbers" are just the base 10 version of the binary they represent, exe 65 means 01101010 or something
+because its in bytes, can range from 0 to 255 in decimal.
+> NOTE: these #s ARE NOT ASCII NECESSARILY, ITS JUST BYTES, THAT CAN BE INTERPRETED AS ASCII IF YOU WANT
+so, in reality its more like:
+
+65 66 67 (6,3)
+KEY: this output is NO LONGER raw bytes
+its now literals and matches:
+(literal 65), (literal 66), (literal 67), match(6,3) (NOTE: the literal and match keywords are abstract and implied here)
+You basically have a sequence of tokens like this, at least in structure
+
+>PROBLEM: Huffman needs a discrete alphabet (works symbol -> binary, so must turn these tokens into symbols)
+tokens are 0-255 possible literals and arbitrary many (length, distance) pairs
+
+(these "symbols" are abstract, not bit-level. just the idea that there will be some symbol representing the bytes and matches)
+Literal/length encoding:
+0–255	    literal bytes
+256	        end-of-block
+257–285	    length codes
+
+Distance Encoding (different alphabet):
+0-30        distance codes
+
+From there:
+literal(65) -> symbol 55
+
+match(length,distance) -> length_code + length_extra_bits + distance_code + distance_extrabits
+(why: because some distances are more common than others.)
+(use the length/distance codes for the huffman, and the extra bits for fine adjustments)
+
+>HUH?
+recall:
+length = 3 to 258
+distance = 1 to 32,768
+
+if you huffman directly, need 256 chars for legnth and 32k chars for distance (HUGE)
+INSTEAD: group values into ranged (buckets)
+each bucked has fixed base value and number of bits (THIS )
+
+
+
+
+
+
+
+
+
+
+DEFLATE does not encode RAW bytes anymore, INSTEAD
+
+1. Literal byts (0-255)
+2. End-of-Block marker (256)
+3. Length Codes (257-285)
+4. Distance Codes (different alphabet)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

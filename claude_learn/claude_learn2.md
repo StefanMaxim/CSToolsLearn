@@ -106,3 +106,46 @@ When Milestone 1 is done, stop and summarize:
 
 if it looks good:
 I tested milestone 1 locally using a local server. The page loads and the scaffold appears. Proceed to milestone 2 only.
+
+
+CLAUDE.md helps Claude behave correctly and consistently when working on your codebase. It usually includes:
+
+1. Project context
+What the project does
+Key architecture decisions
+Important files or modules
+2. Coding rules & conventions
+Style guidelines (naming, formatting, etc.)
+Framework-specific patterns
+Do’s and don’ts
+3. How Claude should act
+“Prefer minimal changes”
+“Write tests for new features”
+“Don’t modify X files”
+“Ask before making breaking changes”
+4. Environment & workflow info
+How to run the project
+Build/test commands
+Dependencies
+5. Task-specific instructions
+How to implement features
+How to debug issues
+How to review PRs
+
+
+~1,000–3,000 words (most common sweet spot)
+
+
+Also, should have a Docs:
+architecture, code standards, API (to prevent it from scanning codebase every time you chat)
+CLAUDE.md shoudl direct to the correct file (or you do it manually)
+contains what its purpose and what behavior 
+
+CLAUDE.md is 
+Rules
+Coding style
+How to interpret specs
+How to execute tasks
+(look at examples online)
+
+the actual implementation guide is in prompts/architecture
