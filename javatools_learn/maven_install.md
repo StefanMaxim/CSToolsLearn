@@ -253,3 +253,9 @@ export M2_HOME=/opt/maven
 export PATH=$M2_HOME/bin:$PATH (name not important, will check the entire path to find itself)
 
 Now, maven is installed
+
+**NOTE**
+can edit .zshrc in vim to fix up the path and make it more clean
+
+MAVEN_HOME=
+then add MAVEN_HOME to PATH
