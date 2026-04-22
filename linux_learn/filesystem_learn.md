@@ -38,6 +38,8 @@ root, or /, is both a directory and the namespace of the entire OS
 /bin and /sbin hold the minimal, and essential system for the OS to boot and recover
 (NO DEPENDENCIES ON OPTIONAL COMPONENTS)
 
+/boot: holds the booting files like the kernel and stuff (only needed for boot, after start mostly irrelevant for day to day)
+exe: /boot/vmlinuz
 
 /bin:
 Contains binary commands for use by all users (on most Linux systems, this directory is a shortcut to /usr/bin)
@@ -51,13 +53,35 @@ exe:
 /bin/ls
 /sbin/init
 
+
+Asside on Minimality:
+Absolute minimum:
+kernel, in /boot/linuz
+and an init process, PID 1 (init is a way to initialize processes)
+(thats enough to boot into something, but pretty useless)
+
+More reasonable minimum:
+shell, (bash/sh) (shell = way to run commands)
+basic utilities (coreutils) (coreutils = ways to manipulate files)
+libraries /lib (holds required libraries)
+init system: systemd
+/etc configs
+
+
+
+
 ### /usr
 /usr is the main system software tree
-**NOTE** sometimes, sbin and bin are shortcuts to /usr/bin and /usr/sbin, like in Arch or RedHat linux
-but usually they are different, separated by utility to boot
+**NOTE** FOR MOST LINUX SYSTEM (USR-MERGE), sbin and bin are shortcuts to /usr/bin and /usr/sbin, like in Arch or RedHat linux, and UBUNTU
+but on mac they are different (more on that later)
 
 contains all non-essential, but standard OS software
 managed by package managers (intended to be read-only in normal runtimes)
+NOTE: package != executables
+package managers handle packages:
+exe: coreutils package has ls in it
+/sbin/fsck in some other package
+(however, only the packages installed by apt can be removed by it)
 
 /usr/bin holds programs intended for normal users
 exe:
@@ -75,9 +99,12 @@ exe:
 /usr/sbin/fsck
 (less everyday tools like git and python and more system-wide things like network setup and user management)
 
-/usr/lib stores libraries, which are .so files or things that you can add to executables without having to re-type code
+
+
+(also USR-MERGED!, all libs /lib /lib64 /lib32)
+/usr/lib stores libraries, which are .so/.a files or things that you can add to executables without having to re-type code
 (the .a and .so files from maven_learn)
-library = pre-written code that other programs can use
+library = pre-written code that other programs can use (NOTE: /lib CONTAINS BOTH STATIC AND DYNAMICALLY LINKED LIBRARIES)
 
 2 main types:
 
@@ -122,6 +149,9 @@ Structure mirrors /usr:
 /usr/local/bin
 /usr/local/lib
 ... (just where you put your own executables)
+
+/usr/lib/libexec stores private, low-devel demons and system binaries, like the java_home on mac for changing 
+java version
 
 
 ### /opt
@@ -168,7 +198,7 @@ may be wiped at any time
 
 ### Runtime States
 /run stores runtime only states
-exe: PIDs, Sockets, Locks, etc
+exe: PIDs, Sockets, Locks, etc (socket = networking CS180 notes, Lock = for syncronization, CS180 notes)
 
 ## Layer 5: User Domain
 
@@ -235,3 +265,145 @@ Data: /var /home
 Runtime: /run /proc
 
 
+
+
+
+
+# MacOS Filesystem
+
+Linux is Filesystem Heirarchy Standard
+(binaries here, configs there, data there, and temp stuff there)
+
+Apple still has many of those core Unix stuff, but much more apple-focused:
+application bundles, library domains, APFS system/data separation, and stronger protection of system paths
+
+
+KEY NOTES:
+
+Applications: these are full directories trees that the finder considers as a single unit, one application
+(.app file extension)
+
+Resources Split by Domain:
+System-Wide, local machine, network, and per-user (unlike linux's 3 focuses)
+
+KEY NOTE: the core of the system is MUCH more isolated than linux, many core syslibs being read-only
+
+
+
+## LOOSE HIGH-LEVEL ROADMAP
+
+
+User home directory:
+Linux: /home/ (home often empty on mac)
+Macos: Users/
+
+Installed GUI apps:
+Linux: distro-specific, or /opt
+Mac: /Applications
+
+OS Files:
+Linux:
+/usr /bin /lib /etc
+Macos: /System or /System/Library (protected)
+
+Machine-Wide App Supporting Config:
+Linux: /etc, /usr/share /var/lib
+Mac: /Library
+
+Per-user App Support:
+Linux: .files, ~/.config ~/.local
+Macos: ~/Library
+
+Mount Points:
+Linux: /mnt /media
+Macos: /Volumes
+
+Local CLI/package manager tools:
+Linux: /usr/local /opt
+Macos: /usr/local /opt (this is the same)
+
+Temp/runtime unix paths:
+Linux: /temp /var /run
+Macos: /temp /var /private (but with apple protection)
+
+## Dive into /Applications
+
+On Linux: Application = binaries + libraries + configs spread across FHS 
+On Mac: bundles into a single application, .app
+
+exe:
+/Applications/Safari.app
+/Applications/Xcode.app
+/Applications/Visual Studio Code.app
+
+**NOTE**
+Application are not a single file, but have a directory structure like so:
+MyApp.app/
+  Contents/
+    MacOS/
+    Resources/
+    Info.plist
+    Frameworks/
+
+On Linux, usually the executable lands in /usr/bin, and the rest is scattered throuought the filesystem
+On Mac, apps are self-contained
+This means:
+app code, resources, icons, embedded frameworks, and metadata often ship together
+
+That makes installing an app very easy, just drag it into the /Applications folder
+It may never place a formal user-facing binary into /usr/bin at all
+
+What is a framework:
+
+At its core, a framework is:
+1. A shared library, usually a dynamically linked on (.dylib)
+2. Plus everything needed to use that library
+unlike a simple .dylib, .frameworks have a directory structure:
+
+MyFramework.framework/
+├── Headers/
+├── Modules/
+├── Resources/
+├── MyFramework (the binary)
+└── Info.plist
+
+Key Components:
+
+Binary: the compiled code you link against
+Headers: public interfaces (for objective c/ APIs)
+Modules: metadata for Swift and modern import systems
+Resouces: Images, storyboards, localization files, etc
+Info.plist: metadata about teh framework (size, perms, etc)
+
+Good for code reuse, modularity, encapsulation, and versioning (supports multiple versions in a single framework)
+
+Dynamic vs Static Frameworks:
+Dynamic = loaded at runtime + shared across files
+Static = compiled into teh file
+
+System Frameworks:
+provide by Apple
+/System/Library/Frameworks
+exe:
+AppKit for macos UIs
+Foundation for basic data types, collections, etc
+CoreData for object graph and persistence, useful for storage
+
+How to use:
+in Swift:
+import Foundation
+in Objective-C:
+#include <Foundation/Foundation.h> //tells system to use teh frameworks exposed APIs in headers
+
+
+Why is this better:
+(refer to linking_intro.md for backround on headers, linking and the like)
+
+it basically lets you have the header, the linked library, and all its resources in a single place
+for c on linux, its a whole fiasco for linking when you import, but for mac its streamlined
+
+in linux, given some .so file, there is no really good way to know how it works, making the framework model
+much more appealing
+
+
+## Now /System and /System/Library
