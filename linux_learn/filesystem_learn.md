@@ -45,7 +45,7 @@ exe: /boot/vmlinuz
 Contains binary commands for use by all users (on most Linux systems, this directory is a shortcut to /usr/bin)
 
 /sbin:
-Contains the Linux kernel and files used by the boot loader
+Contains more system-wide binaries, like nginx and fsck for networking/managing users 
 
 
 exe:

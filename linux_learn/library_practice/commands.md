@@ -106,3 +106,97 @@ install
 uninstall
 
 
+## Notes on Header files:
+
+but all the header files are c headers, no? so what if another program want to use them?
+
+header files are moreso a contract, rather than implementation
+it just says that there exists some function that behaves this way
+(this type of input, this type of output), actual implementaion in some .so or .a file
+
+Other langauges like Python have FFI, or Foreign Function Interface, which lets you use c functions directly:
+
+import ctypes
+libc = ctypes.CDLL("libc.so.6")
+libc.printf(b"Hello from C via Python!\n")
+
+works bc of ABI, makes inter-language communication clear
+(functions ahve specific symbol names exe:printf, and clear calling conventions)
+
+headers is guidance for a correct call, just saying the way the function is formatted:
+include function prototype:
+name, parameters, return type (Signature = how compiler sees it, doesnt have return type)
+
+prototype used to validate your calls
+signature (in c, uses only function name) = used to differentiate between functions by compiler
+
+No header file = compiler will try to guess if that function is correct => corrupting registers or bad preformance
+
+
+EXE:
+thereis a great library on device, with a .h file in /usr/local/include and a implementaiton in /usr/local/lib, but
+I am writing in python/java. how to I access it?
+
+IDEA: Dont import the header! just call teh compiled .so using the ABI and re-create teh header's information
+in your own language!
+
+Python:
+
+suppose your header is:
+int add (int a, int b);
+
+Step 1: load the shared library:
+
+import ctypes
+lib = ctypes.CDLL("/usr/local/lib/libmylib.so")
+
+Step 2: re-create the header:
+lib.add.argtypes = [ctypes.c_int, ctypes.c_int]
+lib.add.restype = ctypes.c_int
+
+Step 3: Call it
+result = lib.add(2, 3)
+print(result)  # 5
+
+
+
+Java:
+java is stricter, and uses something called JNI (Java Native Interface)
+
+given int add (int a, int b);
+
+Step 1: declare a native java method:
+
+public class MyLib {
+    static {
+        System.load("/usr/local/lib/libmylib.so");
+    }
+
+    public native int add(int a, int b);
+}
+
+Step 2: java requires a thin wrapper around the method:
+
+
+#include <jni.h>
+
+JNIEXPORT jint JNICALL Java_MyLib_add(JNIEnv *env, jobject obj, jint a, jint b) {
+    return add(a, b); // call your real C function
+}
+
+Step 3: call from Java
+
+MyLib lib = new MyLib();
+System.out.println(lib.add(2, 3));
+
+
+For most tasks like this, Java did the hard work:
+Your Java code
+   ↓
+Java standard library (Java)
+   ↓
+JNI layer (C/C++)
+   ↓
+libc / system calls (C ABI)
+   ↓
+Kernel

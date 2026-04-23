@@ -52,6 +52,7 @@ JRE + tools like:
 - jdb
 - jar (Java Compiler Archive, like tar but for java, in that contains multiple .class objects, resources like images, and metadata, all used for the distribution + deployment of java applications)
 jar cf app.jar *.class // literally copies tar format!
+**NOTE** Maven Artifacts are likely .jar files!
 
 You want this one, ie the JDK because ofc we want the compiler!
 
