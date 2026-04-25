@@ -105,6 +105,9 @@ exe:
 /usr/lib stores libraries, which are .so/.a files or things that you can add to executables without having to re-type code
 (the .a and .so files from maven_learn)
 library = pre-written code that other programs can use (NOTE: /lib CONTAINS BOTH STATIC AND DYNAMICALLY LINKED LIBRARIES)
+NOTE: /lib vs /lib64, lib64 used to store 64 bit library files whiel .lib for 32 on some systems, on others lib
+stores both and /lib64 is just empty dir
+
 
 2 main types:
 
@@ -141,6 +144,38 @@ exe:
 /usr/bin/git
 /usr/bin/python3 (not needed for boot, but useful)
 /usr/share/X11 (the windows server, at least part of it)
+
+
+
+NOTES ON PACKAGE MANAGERS:
+
+when you type: sudo apt install curl
+
+curl, in this case, is a package, specifically a .deb for debian systems:
+This is just an archive file, consisting of:
+binaries, libraries, headers, install scripts, configs, docs
+
+HOWEVER: install script is NOT for moving the packages to their respective spots in memory:
+inside package, files are named with their indended location relative to the package:
+exe:
+user/bin/curl
+usr/lib/libcurl.so
+/usr/share/docs/curldocs
+
+when installing, package manager just takes those files, and maps then to the root directory,
+instead of the package:
+usr/bin/curl -> /usr/bin/curl etc
+
+BUT HOW DOES IT KNOW HOW TO DELETE PACKAGES:
+inside, in var/lib/dpkg/info/curl.list
+(apt calls dpkg under the hood)
+
+What this does it it stores a list of all the files associated with the curl command:
+/usr/bin/curl
+/usr/share/docs/curldocs
+/usr/share/man/man1/curl1.1.gz
+
+and when uninstalling, it just goes through the list and removes all the files associated with the package in question
 
 
 ### /usr/local
