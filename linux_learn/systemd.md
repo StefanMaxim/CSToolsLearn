@@ -3,7 +3,7 @@ that is done by the kernel vs exec() and fork()
 
 instead, is it the first process to be started (called init) that manages the system:
 
-1: Bootstraps the system, meaning it lauches essential sercives like networking and login on start
+1: Bootstraps the system, meaning it lauches essential services like networking and login on start
 2: Manages services (service = thing hosted on server, by daemon) can start, stop, and manage
 3: Handles dependencies like how webserver needs networking
 4: handles task scheduling, devises, adn the like, but ess
@@ -195,13 +195,20 @@ full chain from boot -> systemd -> python script walkthrough
 0: Bootloader -> kernel load (before linux runs)
 
 1. Firmware (BIOS/UEFI) runs
+BIOS is legacy or UEFI for modern system (basically its software baked into your hardware)
+it initializes CPU, Ram, basic hardware
+and finds a bootable device (disk, USB, etc)
+
 2. Loads a bootloader (GRUB)
+BIOS loads the first-stage bootloader from the disk (MBR)
+UEFI loads an EFI executable from the EFI System Partition
 
 Bootloader loads:
-/boot/vmlinuz (compressed linux kernel)
-initramfs (temporary userspace root fielsystem)
+/boot/vmlinuz (compressed linux kernel) into memory
+initramfs (initial RAM filesystem)
+passes kernel commands (root=, quiet, etc)
 kernel command line (eg init=/usr/lib/systemd/systemd)
-then bootloader jumps into kernel entry point
+then bootloader jumps into kernel entry point (handing over control to the kernel)
 
 
 1: Kernel Starts (no processes yet)
@@ -212,8 +219,42 @@ no scheduler is initialized
 memory manager is up
 
 Now, kernel:
-mounts initramfs as a temporary root
+sets up memory management, scheduler, interrupts
+detects hardware and loads built-in drivers
+
+CRUTIALLY:
+mounts initramfs as a temporary root (initramfs is loaded first by the bootloader, but the kernel runs it itself
+as a temp filesystem)
 prepares for first userspace execution
+(NOT a process yet, just mounts it as a temporary place)
+then, it executed /init from the initramfs
+
+What is initramfs?
+it is tiny, temporary userspace whose job is to prepare the REAL root filesystem
+/init might be:
+1. a shell script (Busy-Box-stye)
+2. systemd itself running in initramfs mode
+
+what it does:
+loads necessary kernel modules (disk, RAID, LVM, crypto)
+discovers hardware needed to acces root filesystem
+decrypts disks (if using LUKS)
+assemble RAID or LVM volumes (storage)
+Mounts the REAL root filesystem (/dev/sda2) (MOUNTING = MAKE CONTENTS OF STORAGE DEVICE ACCESSIBLE VIA PATH, RELATIVE TO ROOT)
+Aside on mounting:
+wait, isnt /dev/sda a mount already?
+NO: is it not a filesystem, but just raw access to a disk partition.
+
+cat /dev/sda1 returns binary garbage, not filenames because there is no filesystem interpretation happening
+mounting takes the raw disk data:
+filesystem struction (ext4, xfs)
+Metadata (inodes, directories, etc)
+Raw data blocks
+AND INTERPRETS THEM INTO A FILESYSTEM STRUCTURE
+
+then, pivot to the "real" init process:
+
+
 
 2: Kernel creates PID 1 (systemd)
 calls:
@@ -229,11 +270,22 @@ so kernel -> execve(systemd) -> PID 1
 3: Systemd boot sequence (high level)
 
 3.1: systemd initialized itself:
+NOTE: systemd builds dependency graph of units and executes them in paralle when possible (read above)
+
 sets up loggin (journald)
-mounts filesystems (mount -t proc proc /proc, mount -t sysfs sys /sys)
+mounts essential filesystems (mount -t proc proc /proc, mount -t sysfs sys /sys, mount -t dev /dev)
 starts cgroups heirarchy (user heriarchy for login and stuff)
 
-3.2: sysyemd starts services
+3.2: sysyemd starts services:
+
+NOTE: Systemd organized everything into UNITS:
+.service -> daemons
+.mount -> filesystemd
+.socket -> sockets (for networking)
+.target -> grouping (runlevels)
+.timer -> scheduled tasks
+
+CRUTIALLY, SYSTEMD BUILDS DEPENDENCY TREE AND STARTS PARALLEL EXECUTION OF CREATING / STARTING THESE UNITS
 
 for each service, exe: sshd, networking, etc
 

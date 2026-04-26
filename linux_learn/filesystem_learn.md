@@ -278,6 +278,8 @@ Holds devices as files
 /dev/tty     # terminal
 
 
+
+
 ## Layer 7: Mount Points
 /mnt
 used for temporary mounts

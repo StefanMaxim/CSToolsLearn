@@ -166,6 +166,8 @@ permissions (r/w/x)
 file backing (if any)
 offset into file (if file-backed, allows it to be backed by a particular part of a fiel, not the whole thing)
 
+NOTE: aside from just hte file, loader also mmaps part of the kernel into the process to speed up syscalls and inter-process communication, but its a good practice to not break into kernelspace.
+
 
 ## More on Libraries
 
