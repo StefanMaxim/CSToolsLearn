@@ -60,13 +60,14 @@ kernel, in /boot/linuz
 and an init process, PID 1 (init is a way to initialize processes)
 (thats enough to boot into something, but pretty useless)
 
+(READ SYSTEMD.MD FOR WHAT INIT PROCESS AND ALL THAT STUFF MEANS)
+
 More reasonable minimum:
 shell, (bash/sh) (shell = way to run commands)
 basic utilities (coreutils) (coreutils = ways to manipulate files)
 libraries /lib (holds required libraries)
 init system: systemd
 /etc configs
-
 
 
 
