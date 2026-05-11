@@ -83,7 +83,7 @@ git branch -D branchname //used to force delete branches
 git branch -c branch name copies a branch along with its config and reflog (NOTE: all moves, deletes, and copies are in place, meaning its functionaly renaming)
 
 //now the merge stuff:
-git merge branchname //merges the branch you are currently on with branchname branch. (use git status to see merge conflict)
+git merge branchname //merges the branch you are currently on with branchname branch. (use git status to see merge conflict) (update current branch with new merge!)
 git merge --abort //cancels the current merge try
 git add file //used to resolve merge requests, must add the file to show that the merge conflict is fixed
 git add/restore //to update what you want committed and git restore to restore the files you dont want committed
@@ -325,6 +325,15 @@ to pull from your local to update the remote (functionally a push from the local
 **NOTE**
 what if you accidentaly push the wrong thing to remote? can you change your DAG?
 
+(NOTE: --force in git push overrides the rule that you can only override remote references that are the ancestors of local commits)
+(IE you cannot change the DAG, in the sence that you move the reference, and its corresponding chain of commits in such a way that it 
+removes from the DAG, you can only append to it normally)
+
+WHAT DO YOU PUSH:
+recall, each commit has a tree and a parent. git push just 1: pushes all the local commits to the remote, and 2: update the desired reference to point to 
+another commit. The graph is generated afterwards by following the chain of parents to the first commit. 
+
+
 (if its the last commit)
 git reset --hard HEAD~1 (moves your local branch back 1 commit(locally))
 git push origin main --force
@@ -479,7 +488,9 @@ feature: X-y
 
 merge:
 main: A-B-C-M
-feature: X-Y
+feature: X-Y 
+
+NOTE: Merged Branches have 2 parents!
 
 then pushed main, which will update teh remote's origin/main 
 
