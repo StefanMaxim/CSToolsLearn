@@ -445,3 +445,19 @@ much more appealing
 
 
 ## Now /System and /System/Library
+
+BRIEF ASIDE: when deleting apps, be sure to check /Library and 
+~/Library (root = global configs, system-wiude, home = for particular user) look for Application Support
+Caches, and Preferences, Saved Application State, Logs, 
+~/Library/Cookies
+~/Library/HTTPStorages
+~/Library/WebKit
+~/Library/Containers
+~/Library/Group Containers
+
+Login items:
+~/Library/LaunchAgents
+/Library/LaunchAgents
+/Library/LaunchDaemons
+
+(lot of places to check)
