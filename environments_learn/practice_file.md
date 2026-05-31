@@ -1,0 +1,1 @@
+This is a test file, which i will first commit, then modify, and see whether the change appears as modified, or a new file, suggesting that it uses atomic-saves, where it just creates a new file, and then renames it. 
