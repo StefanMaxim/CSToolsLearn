@@ -106,6 +106,22 @@ install
 uninstall
 
 
+HOW TO TURN INTO A FULLY-FLEDGED PACKAGE:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## Notes on Header files:
 
 but all the header files are c headers, no? so what if another program want to use them?
@@ -134,7 +150,7 @@ No header file = compiler will try to guess if that function is correct => corru
 
 
 EXE:
-thereis a great library on device, with a .h file in /usr/local/include and a implementaiton in /usr/local/lib, but
+there is a great library on device, with a .h file in /usr/local/include and a implementaiton in /usr/local/lib, but
 I am writing in python/java. how to I access it?
 
 IDEA: Dont import the header! just call teh compiled .so using the ABI and re-create teh header's information

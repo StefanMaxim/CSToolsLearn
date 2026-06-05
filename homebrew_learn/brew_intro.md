@@ -96,3 +96,45 @@ under the scene, homebrew automatically:
 same shorthand for others, so brew install --cask google-chrome
 is really homebrew/cask/google-chrome in its CORE repository, where the base stuff are installed.
 
+
+
+
+LINUX COMPARISON:
+
+whereas linux uses both apt and dpkg for the role of package managing 
+(dpkg for creating and installing packages, and the underlying took for keeping track of them) and apt for the sharing, managing, and handling of dependencies, brew does all of that, using the /opt/homebrew/Cellar as the place where they are installed, and then linking them where they belong.
+
+**KEY** WHAT GOES IN YOUR ZSHRC?
+zshrc is a startup script that runs whenever an interactive zsh shell starts.
+common things to put
+1: env vars
+export EDITOR=nvim
+export JAVA_HOME=/opt/homebrew/opt/openjdk (recall how to switch java versions)
+
+2: alias's
+alias ll='ll -lah'
+alias python='python3'
+
+3: functions (more powerful alias's)
+mkcd() {
+    mkdir -p "$1"
+    cd "$1" //note, teh $1 means the first argument passed to the executable.
+}
+
+4: Homebrew setup
+eval "(/opt/homebrew/bin/brew shellenv)"
+this runs the shell command brew shellenv, which prints out shell commands like
+export HOMEBREW_PREFIX='/opt/homebrew' etc...
+
+$() is called command substitution, which then camptues the output, and it becomes
+a string containing the export commands, then passed to eval
+
+RECALL:
+
+/usr/libexec/java_home -V //displays all available java versions
+
+export JAVA_HOME=$(/usr/libexec/java_home -v 17) //exports a new version of java, which
+is installed via brew btw
+export PATH="$JAVA_HOME/bin:$PATH" //doing this changes the path env var, making it mermanent (if written in ~/.zshrc)
+
+echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.zshrc

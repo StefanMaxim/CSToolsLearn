@@ -5,6 +5,10 @@
 brew install qemu
 
 qemu-system-x86_64 --version //obtain the version of it
+(usually will get some .tar.gz that expands to what you need, or in general 
+it will work as a package)
+
+(this functions kinda like apt + dpkg together. Whereas dpkg is for creating and installing packages, and apt is for managing them + handling dependencies, brew does all of that)
 
 ## Create a folder for the QEMU VMs
 mkdir -p ~/vms/debian-x86
@@ -186,3 +190,7 @@ get the executable open so you can quickly make vms in terminal
 
 sudo ln -sf /Applications/UTM.app/Contents/MacOS/utmctl /usr/local/bin/utmctl //creates symlink to the utmctl command line tool
 (must be run from terminal, not some ssh terminal or on vscode)
+
+
+
+

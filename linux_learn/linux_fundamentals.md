@@ -128,6 +128,100 @@ but they can also refer to:
 
 ## Searching
 
+grep:
+
+Loose overview:
+grep "pattern" file.txt
+
+grep "TODO" file1.txt file2.txt (SEARCH MULTIPLE FILES)
+grep "TODO" * (checks all files in current dir)
+grep -r "TODO" . (recursive check through directories)
+
+grep -i (case-insensitive)
+grep -n (show line number)
+
+grep -l "password" * (Shows only filenames matching)
+
+grep -v "debug" app.log (KEY: shows lines NOT containing debug)
+grep -c (counts matching lines)
+grep -w "cat" file.txt (matches whole words, matches cat, but not category)
+grep -x "cat" * (matches only lines that say cat and nothing else)
+
+Useful combos:
+grep -rin "error" .
+
+grep -r "useState" --include="*.jsx" . (forces that files have certain extension)
+grep -r "TODO" . --exclude-dir=node_modules (excludes certain directories)
+grep -r "TODO" . --exclude="*.min.js" (excludes certain files)
+(NO INCLUDE DIR OPTION)
+
+**NOW REGEX TIME!!!**
+
+grep "^ERROR" app.log (means line must start with ERROR)
+
+grep "done$" output.txt (means line must end with done)
+
+grep "gr.y" file.txt (means matches a single character, can be gray, grey, doesnt matter)
+
+grep -E "error|warning|failed" app.log (the | regex means can be either or)
+
+grep -E "[0-9]+" file.txt (means can be any numbers from 0 to 9, + meaning 1 or more)
+
+grep -E "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}" file.txt
+(matches email, kinda)
+
+-F means LITERAL STRING, or FIXED STRING, WILL IGNORE THE . IN REGEX STUFF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### NOW ONTO FIND:
+find searches for files/directories that matches the rules you specify
+
+find WHERE CONDITIONS ACTION
+
+find . -type f (searches for files in current directory, -type d for directories)
+
+-name "*.py" (searches for all .py files)
+
+-size +100M (over 100 MB)
+-mtime -1 (modified less than one day ago)
+
+-o means OR
+
+\(...\) used to group conditions together
+
+-prune means do not search inside of matched directory
+-print means print the matches
+
+find . -type d \( \
+  -name node_modules -o \
+  -name .git -o \
+  -name dist -o \
+  -name build -o \
+  -name .next -o \
+  -name .venv -o \
+  -name venv -o \
+  -name __pycache__ -o \
+  -name .pytest_cache -o \
+  -name .mypy_cache \
+\) -prune -print
+
+
+
 ## System Info
 
 ## Compression
@@ -153,7 +247,7 @@ Compression Flags
 
 -v verbose
 
-tar -czf archive.tar /folder
+tar -czf archive.tar.gz /folder  (MUST BE CLEAR WITH THE EXTENSIONS, AS THEY ARE CONVENTION)
 (results is called TARBALL)
 
 **A tar archive (tar) stores:**
@@ -184,7 +278,7 @@ gzip -c file >> file.gz
 or -dc
 
 -v verbose
--r recursive compression (USEFUL)
+-r recursive compression (USEFUL) (it compresses the files in a directory one by one)
 
 
 
@@ -198,6 +292,8 @@ or -dc
 ## Generic
 
 - man (cmd) // checks the manual for how to use a command
+
+
 
 
 

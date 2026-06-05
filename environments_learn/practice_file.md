@@ -8,4 +8,4 @@ Because the .git file is OS-independent, using its own SHA1 compression where th
 
 That also means that git status works by looking in your directory, and seeing all of the files there, likely by name not by inode. By keeping inodes out of the git behavior, it lets the syncing acutally be rather convenient.
 
-Thus, if I put my dotfiles here, it should actually work like an automatic GIT, since the symlinks just refer to the icloud directory by path (NOT INODE CRUTUALLY), meaning even if the file is changed or overridden, all is good!
+Thus, if I put my dotfiles here, it should actually work like an automatic GIT, since the symlinks just refer to the icloud directory by path (NOT INODE CRUTUALLY), meaning even if the file is changed or overridden, all is good! 

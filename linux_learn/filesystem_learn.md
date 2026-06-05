@@ -374,6 +374,52 @@ exe:
 /Applications/Xcode.app
 /Applications/Visual Studio Code.app
 
+Application are directories
+Pkgs are files, basically installers:
+They usually:
+Copy apps into /Applications
+Install files into /Library
+Install command-line tools
+Run setup scripts
+
+dmg is disk image, file mounted by macos to appear like a temp drive
+DMG usually contains TheAppInQuestion.app and Applications (shortcut)
+you just copy the app into the Applications folder. On mac, applications are fully
+separate.
+pkgs are better when you need it to do stuff outside the app, like:
+Installing files into /Library
+Installing command-line tools into /usr/local/bin or similar
+Installing frameworks, libraries, fonts, or drivers
+Setting up launch daemons/services
+Creating system configuration files
+Running pre-install or post-install scripts
+
+NOTE: DMG and PKG are not competitors, as DMG is just the payload container, 
+it can contain just the .app and shortcut, or a pkg inside it.
+Useful bc an app is a directory, so sending it alone is bad bc files could be altered, etc
+instead, bundle it into a disk image.
+Once done so, it can show a custom image letting the user simple drag the app
+into the applications folder
+
+Linux uses instead .tar.gz or .zip files for the dmg, and .deb or .rpm for 
+handling packages.
+
+PACKAGE:
+A software package usually contains:
+
+The program itself (executables)
+Libraries it depends on
+Configuration files
+Metadata (name, version, author)
+Instructions for installation/removal.
+
+without it, you would have to manually copy over the files where they belong, this
+is easier. (READ ABOVE, IT TELLS YOU HOW A PACKAGE KEEPS TRACK OF WHERE INSTALLATIONS GO)
+
+(READ PACKAGES LEARN TO SEE HOW TO DO THIS)
+
+
+
 **NOTE**
 Application are not a single file, but have a directory structure like so:
 MyApp.app/
