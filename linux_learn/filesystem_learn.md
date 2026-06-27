@@ -349,7 +349,7 @@ Linux: /etc, /usr/share /var/lib
 Mac: /Library
 
 Per-user App Support:
-Linux: .files, ~/.config ~/.local
+Linux: .files, ~/.config ~/.local 
 Macos: ~/Library
 
 Mount Points:

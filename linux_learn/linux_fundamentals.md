@@ -128,7 +128,7 @@ but they can also refer to:
 
 ## Searching
 
-grep:
+### grep:
 
 Loose overview:
 grep "pattern" file.txt
@@ -138,7 +138,7 @@ grep "TODO" * (checks all files in current dir)
 grep -r "TODO" . (recursive check through directories)
 
 grep -i (case-insensitive)
-grep -n (show line number)
+grep -n (show line number + file, often better than just l which shows filename)
 
 grep -l "password" * (Shows only filenames matching)
 
@@ -173,14 +173,16 @@ grep -E "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}" file.txt
 -F means LITERAL STRING, or FIXED STRING, WILL IGNORE THE . IN REGEX STUFF
 
 
+NOTE:
+if you 
+ls | grep -il"java" , it will return (standard input) since it doesnt have file-type context when piping
+
+NOTE: the ls stuff will be interpreted as a series of paths,
+ls | grep -ril "java", does work, and will search all of the directories outputted by ls recursively and list out
+which files contain "java", case insensitive, in any form
 
 
-
-
-
-
-
-
+rincvlxwE
 
 
 
@@ -220,14 +222,26 @@ find . -type d \( \
   -name .mypy_cache \
 \) -prune -print
 
+find /path/to/directory -maxdepth 1 -type f
+
+maxdepth useful
+
 
 
 ## System Info
+
+### ps
+ps:
+lists the current processes that are active on your computer.
+
+
 
 ## Compression
 Compression + Combining happens via 2 methods:
 Combine files = tar, compress = gzip
 
+
+### tar
 tar: tape archive, bundles multiple files + folders into one file, preserving directory perms and timestamps
 
 tar -xzf filename.tar.gz //order is what you want to do (X) filter (gzip compression), and file
@@ -248,8 +262,13 @@ Compression Flags
 -v verbose
 
 tar -czf archive.tar.gz /folder  (MUST BE CLEAR WITH THE EXTENSIONS, AS THEY ARE CONVENTION)
+(can add more than just folder, and files are added in the order specified by the command list arg)
+
+-r is like c, but new entries appended to the archive (uncompresssed archives only)
+-u like r, but only adds it modification date newer than corresponding entry in the archive
 (results is called TARBALL)
 
+-f means read the archive from or write the archive to the specified file.(changes use based on c vs xq)
 **A tar archive (tar) stores:**
 
 filenames
@@ -266,7 +285,7 @@ to work, it uses syscalls like open() read() write() mkdir() chmod() when on POS
 
 
 
-
+### GZIP
 gzip: compresses a single file using the DEFLATE algorithm
 
 gzip file //comrpesses it via gzip
@@ -285,16 +304,255 @@ or -dc
 
 ## Network
 
+### curl
+curl:
+curl, by default 
+curl https://example.com
+will
+1: download the content (holds it in memory as a stream)
+2: writes it to stdout
+3: does not save it to a file
+
+
+-o means write output to a file (like how -O which means to download as per that file name)
+-O
+-o- means to write to stdout instead (same as default, but more explicit)
+-f fail silently on http errors (exe 404, will not output the html error page, instead exit with error)
+-s silent mode (do not output what you are doing to stdout)
+-S show error (in the even of an error, print it to stdout)
+-L follow redirects (301, 302 re-direct)
+
+
+
+
+
+
+
 ## Installation
 
 ## Shortcuts
 
+
+
+
+## Core System
+
+### sudo
+
+### systemctl
+main way to interact with systemd (look at systemd.md for more info)
+
+sudo systemctl poweroff -i
+-i means ignore inhibitors, so it can shutdown even with others trying to block the shutdown, like other connected users
+
+
+
+
+
+### apt
+primary debian package manager (look at packages_learn.md for more info)
+
+### dpkg
+underlying debian package installer (look at packages_learn.md for more info)
+
+
 ## Generic
 
+### man
 - man (cmd) // checks the manual for how to use a command
 
+### single quotes, double quotes, and commmand substitution
+- "" vs '' vs $() and how they interplay in commands like
+
+Double QUotes:
+they preserve spaces and most special characters, but still allow variable expansion and command substitution.
+
+variable expansion:
+name="Alice"
+echo "Hello $name" outputs Hello Alice
+
+command substitiion:
+echo "Today is $(date)"
+the $(date) gets executed
+
+why quotes matter:
+
+file="my file.txt"
+rm $file becomes rm my file.txt, which is treated as 2 different arguments, with quotes, it becomes a single argument
+
+
+Single Quotes:
+
+everything is treated literally
+
+name="Alice"
+echo '$name' outputs $name
+
+likewise
+echo '$(date)' outputs $(date)
+
+
+more on command substitution:
+It 
+1: runs a command and
+2: replaces the entire expression with the commands output (KEY)
+
+echo $(date)
+might become:
+
+echo Thu Jun 4 12:34:56 HST 2026
+
+which then prints Thu Jun 4 12:34:56 HST 2026
+
+
+another example:
+files=$(ls)
+files stores the output of ls
+
+you can nest it via:
+
+echo "$(whoami) is in $(pwd)"
+george is in /home/george
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### eval vs exec
+eval '$(/opt/homebrew/bin/brew shellenv)'
+
+eval vs exec:
+
+exec: replaces the terminal (the process as a whole) with a new process as specified by the ELF/Mach-O of another file. eval just evaluates a command
+(note: if you specify a command via /, it will not execute it as a builtin, and instead create a new process for it)
+echo is builtin, /bin/echo is not
+NOTE: builtin zshrc in /etc/zshrc
+
+### ln
+ln: used to create hard links or symlinks in linux
+ln source_file target_file
+
+2 types of links: hard links and symlinks
+hard link: the dentry directly references the inode number of the file you are referencing
+(like . or ../file)
+
+symlink: instead, a symlink is a file whose contents are a string representing the path to the file you
+are linking. (path is stagnant, so moving file messes up the symlink)
+(use man ln for more details)
+
+-s creates symbolic link
+-f if target exists, unlink it so link may occur
+-i writes error in stderr if target already exists
+-h/-n if target is a symbolic link, do not follow it. useful when replacing a symlink that may point to a directory
+
+
+
+
+
+
+
+
+
+
+
+### cat
+cat: cat copies its input to its output.
+if you type cat, and then type hello, it will echo back hello
+(because reading from stdin(keyboard) and writing to stdout(terminal))
+
+<<'EOF' is the here document, meaning pretend everything up to here is a document untill you reach a line containing EOF
+
+so 
+cat <<'EOF'
+hello
+world
+EOF
+
+is teh same as cat from a document whose input was "hello \n world"
+(EOF here is just a marker, it could be any other string you desire, with no quotes around it)
+
+so cat [file1] [file2] means read those files and output then to stdout or whatever is your output
+
+thus:
+
+cat > ~/.ssh/.gitignore <<'EOF' redirects teh output to that file, its like an easy way to do it without vim!
+
+
+### shell globs
+shell globs are patterns that the shell expands into matching filenames
+exe, given files:
+apple.txt
+apple.log
+banana.txt
+notes.md
+
+"mv *pattern* destination/" is expanded by teh shell into "mv apple.txt apple.log destination/"
+
+Common Shell globs:
+
+
+'*' meaning 0 or more characters:
+*.txt -> apple.txt banana.txt
+
+'?' meaning exactly one character
+file?.txt
+
+[abc] meaning one character from a set
+file[12].txt -> file1.txt file2.txt (**KEY**: if only file1 exists, no file2, it will just match the files that DO exist)
+
+[a-z] meaning one character in a range
+file[1-9] -> file1 file2 ... file 9 **KEY2** it matches characters, meaning fileo.txt is perfectly valid, even if o is not a number!
+
+[!abc] meaning one character NOT in a range
+file[!0].txt -> file(some character that is not 0).txt
+
+More common ones
+[[:digit:]] one digit
+[[:alpha:]] one letter
+[[:alnum::]] one letter or number
+[[:lower:]] one lowercase letter
+[[:upper:]] one uppercase letter
+[[:space:]] one whitespace
+
+**NOTE** the only mutli-character symbol for globs is *, which can be used rather liberally
+
+```bash
+report*2025*.csv
+```
+matches
+report2025.csv
+report_final_2025.csv
+report-v2-2025-backup.csv
+
+Double Star:
+
+"results/**/*.npz" also matches and works, which matches to directories
+IT MEANS MATCH 0 OR MORE DIRECTORIES RECURSIVELY
+results/file.npz                  ✅
+results/run1/file.npz             ✅
+results/run1/epoch10/file.npz     ✅
+results/a/b/c/d/file.npz          ✅
+
+Single Star:
+
+results/*/*.npz also works, but it enforces it must be only 1 directory.
+
+
+
+
+### REGEX
 

@@ -53,3 +53,21 @@ pkill -u %USER PID to kill a process,
 
 Also, try to enable Remote-SSH listen on socket, so multiple ppl can listen at a time.
 This means server will listen on a socket path rather than opening a port every time.
+
+
+
+
+
+
+## MORE ON SSH
+
+ssh -t trainer_big
+
+-t forces ssh to allocate a pseudo-terminal on the remote computer, useful for 
+
+-y used to see your keys
+
+ssh-keygen -y -f ~/.ssh/id_ed25519_... will let you see the key
+
+if you are going to keep your private keys decrypted on your computer, which you often times do, it might be wiser to use 
+some sort of encryption when storing them on a server, like pgp or something.

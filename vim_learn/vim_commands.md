@@ -16,6 +16,10 @@ lets you run commands via :.
 to begin, use vim (file) to open a vim swap of the file:
 (everything you do is first done to the swap, then written to the file)
 
+## CURSOR:
+CURSOR IS A SQUARE, WITH IT GENERALLY BEING THE ONE BEFORE THE SELECTED CHARACTER, EXCEPT WHEN REPLACING CHARS.
+INSERTS DEFAULT BEFORE, CHAR REPLACE DEFAULT THERE
+
 
 ## Quitting commands
 - :x //used to exit and save changes
@@ -36,11 +40,14 @@ thus, I inserts in front of the highlighted character whereas a will put after
 - h,j,k,l left, down, up, right 
 NOTE: isnt this just a more complex arror keys?
 No: since these movements pair with commands whereas the arro keys dont
+KEY: pair with a number to move up or down that many lines
 
 - w, W next word, blank delimited word 
 (difference: w word includes whitespace and punctuation, W just whitespace)
+(KEY: number, then w moves that many words forward, ie 3w is forward 3 words)
 
-- b B //beginning of word, beginning of blank delimetd word
+- b B //beginning of word, beginning of blank delimetd word (the way to go back a word, back to the start)
+(inverse of w)
 
 - e E //endc of word, end of blank delimited word
 
@@ -71,7 +78,9 @@ lets you iterate between all of the character c in a line
 
 - x X deletes character on cursor, vs char before the cursor
 
-- D deletes from teh cursor to teh end of teh line
+- D deletes from teh cursor to teh end of teh line 
+(TRICK: use b, then dw to go to the beginning of the word, cursor being before first char, and delete to the next word,
+ie right before the next words first char, which is you last char of that word)
 
 - d deletes the line
 :d does the same thing

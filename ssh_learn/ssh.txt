@@ -493,3 +493,18 @@ Primitive start in networking:
 NOTE: issues with the keyts agent, sometimes you can have too many keys loaded in
 ssh-add -l //shows which keys you have currently loaded
 ssh-add -D //removes all of them
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

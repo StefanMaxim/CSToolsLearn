@@ -77,6 +77,10 @@ On mac, just use Homebrew (see Homebrew_learn)
 Step 2: be sure to link it:
 
 sudo ln -sfn /opt/homebrew/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
+target = 
+-s is symlink
+-f is force, as if target file exists, it will not work
+-n (same as -h) if target_file or target_dir is a symlink, does not follow it.(used to replace a symlink)
 
 this creates a symbolic linc between the homebrew directory and one in /Library/Java/, as that is expected by macOS
 this way, tools in /usr/libexec/java_home work

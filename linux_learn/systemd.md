@@ -128,7 +128,7 @@ processes are created using:
 
 fork() -> duplicate process
 
-exec() -> replace it with a new program
+exec() -> replaces the processes's memory (all of it) with the new layout as specified in the executable
 
 so everything forms a tree rooted at PID1
 
@@ -411,3 +411,6 @@ bash fork/exec
 python3 myscript
 fork/exec subprocesses
 
+
+
+KEY: how to invoke system calls.

@@ -217,3 +217,71 @@ Most important ones there are:
 3: copywrite
 4: rules (the debian/rules clean we spoke about) (likely a makefile, so you are really running make clean)
 
+## MACOS
+
+pkgutil is the main application (note: NO UNINSTALLER)
+
+when installing, even via a dmg, it may contain an app or a installer pkg
+dmg is just the delivery system, the payload is either the app or the installer
+
+pkgutils --pkgs //lists all of the pkgs by their identifiers
+
+pkgutil --pkgs | grep -i appname //exe for a more precise search
+
+pkgutil --files com.vendor.appname //used to see what files that package installed and where
+
+pkgutil --pkg-info com.vendor.appname //used to see the install location
+**KEY** 
+when it says install location: /
+that means that all files that were installed were installed relative to that starting location!
+
+exe: location = / means that they COULD HAVE BEEN installed anywhere in the system,
+wheras location = /Applications means it could only be in certain places
+
+HOWEVER: many apps create more files once ran, which are not tracked by the pkg,
+so to fully remove an app, you must delete both
+1: the files installed by pkg AND
+2: other files created at runtime
+
+
+FOR UNINSTALL:
+most packages provide an uninstaller, CHECK:
+1: the apps folder in applications
+2: the mounted dmg
+3: the devs support docs
+
+Common Locations:
+
+~/Library/Application Support/
+~/Library/Preferences/
+~/Library/Caches/
+~/Library/Logs/
+~/Library/Containers/
+~/Library/Group Containers/
+~/Library/Saved Application State/
+AND SOMETIMES
+/Library/Application Support/
+/Library/LaunchAgents/
+/Library/LaunchDaemons/
+/Library/PrivilegedHelperTools/
+
+ALSO: check for launch agents and helper tools
+launchctl list | grep -i appname
+and inspect:
+ls /Library/LaunchAgents
+ls /Library/LaunchDaemons
+ls ~/Library/LaunchAgents
+
+Verify whats left
+mdfind "appname"
+OR
+find ~/Library -iname "*appname*" 2>/dev/null
+
+finally:
+pkgutil --forget com.vendor.appname
+to forget the package receipts
+
+EVEN ON LINUX, IT STILL STRUGGLES FOR FILES CREATED ON THE FLY:
+sudo dpkg -r removes all program files, but leave most configs in system configs in /etc and user configs
+
+sudo dpkg -P or sudo apt purge also removes the configs, but files made on the fly remain

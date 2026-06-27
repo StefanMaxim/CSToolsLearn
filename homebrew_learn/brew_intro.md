@@ -25,6 +25,9 @@ wget, python, git, etc...
 Casks: larger MacOS applications (essentially executables + relate files bundled into .app extensions)
 google-chrome, visual-studio-code, docker, etc
 
+FORMULA = homebrew package built from upstream source (you build it on install from source)
+CASK = homebrew package that installs pre-compiled binaries built and signed upstream
+
 
 
 Vocab Words:
@@ -36,6 +39,43 @@ homebrew calls them formulae
 
 library = re-usable code that other programs use (instead of re-writing it, programs "borrow" it from library)
 
+TERMINOLOGY
+       formula
+              Homebrew package definition that builds from upstream sources
+
+       cask   Homebrew package definition that installs pre-compiled binaries built
+              and signed by upstream
+
+       prefix path in which Homebrew is installed, e.g. /opt/homebrew or
+              /home/linuxbrew/.linuxbrew
+
+       keg    installation destination directory of a given formula version, e.g.
+              /opt/homebrew/Cellar/foo/0.1
+
+       rack   directory containing one or more versioned kegs, e.g.
+              /opt/homebrew/Cellar/foo
+
+       keg-only
+              a formula is keg-only if it is not symlinked into Homebrew’s prefix
+
+       opt prefix
+              a symlink to the active version of a keg, e.g. /opt/homebrew/opt/foo
+
+       Cellar directory containing one or more named racks, e.g.
+              /opt/homebrew/Cellar
+
+       Caskroom
+              directory containing one or more named casks, e.g.
+              /opt/homebrew/Caskroom
+
+       external command
+              brew subcommand defined outside of the Homebrew/brew GitHub repository
+
+       tap    directory (and usually Git repository) of formulae, casks and/or
+              external commands
+
+       bottle pre-built keg poured into a rack of the Cellar instead of building
+              from upstream sources
 
 
 
@@ -64,6 +104,8 @@ brew upgrade                (upgrades what you have already installed) (brew upg
 brew outdated               (show what can be updates)
 brew cleanup                (removes old unnesesary versions and files)
 brew doctor                 (checks setup for common problems)
+
+--verbose --debug to help figure things out
 
 NOTE: homebrew tries hard to not rely on sudo, so if you keep using it, you are doing something wrong
 
@@ -122,7 +164,7 @@ mkcd() {
 }
 
 4: Homebrew setup
-eval "(/opt/homebrew/bin/brew shellenv)"
+eval "$(/opt/homebrew/bin/brew shellenv)"
 this runs the shell command brew shellenv, which prints out shell commands like
 export HOMEBREW_PREFIX='/opt/homebrew' etc...
 
@@ -138,3 +180,5 @@ is installed via brew btw
 export PATH="$JAVA_HOME/bin:$PATH" //doing this changes the path env var, making it mermanent (if written in ~/.zshrc)
 
 echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.zshrc
+
+have to re-add homebrew to the path

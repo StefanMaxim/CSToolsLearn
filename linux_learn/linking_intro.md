@@ -101,6 +101,8 @@ libmylib.a is the output file, by convention .a on linux
 libmylib.o is the compiled object file being added to the library
 
 
+(AR = used to make library archives, TAR = used to make tape archives)
+
 symbolic table:
 index of everything defined in an object file or library, 
 where a symbol is just the name the linker cares abt, usually:
@@ -390,6 +392,12 @@ what functions are available
 what behavior is allowed
 includes headers, like stdio.h and stdlib.h
 system libraries, what you link against later
+
+NOTE: LOOK MORE INTO THIS, WHAT THE SDK IS AND HOW IT WORKS
+from the looks of it, it has nothing in the /usr/bin section except some configs, but the include is full
+(bin and libexec is different, the include is full of stuff)
+the frameworks seem to still be there.
+
 
 Linux parallel:
 /usr/include contains teh system headers, which houses stdlib.h and stuff (SDK like)
