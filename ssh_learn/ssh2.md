@@ -71,3 +71,28 @@ ssh-keygen -y -f ~/.ssh/id_ed25519_... will let you see the key
 
 if you are going to keep your private keys decrypted on your computer, which you often times do, it might be wiser to use 
 some sort of encryption when storing them on a server, like pgp or something.
+
+
+
+## SSH FOR COLLEGE
+
+ssh -X enables X11 forwarding, meaning the main windows server (windows as in creates teh GUIs you see)
+can be passed over as well, letting you see their windows created ontop of just the terminal access to it
+From here, you can run GUI commands like:
+xclock or gedit, and the output will appear on your side no problem
+
+NOTE: for CMU, cannot login via SSH Keys, as the file ~/.ssh/authorized_keys is in the AFS, NOT the server's local drive!
+
+### AFS
+AFS (Andrew File System) is a distributed network filesystem.
+Instead of your home directory living as a unique object on the local disk ofeach server you log into, it instead
+lives on a shared network filesystem
+
+**AFS TOKENS**
+AFS protects files using tokens.
+Before a program can read files in your AFS, it needs a valid token proving you are allowed access
+
+During login, ssh service tries to read:
+~/.ssh/authorized_keys, but the SSH service hasnt logged you in yet, meaning no AFS token exists
+(service is hosted by a daemon on a server)
+SSHD cannot bypass AFS security

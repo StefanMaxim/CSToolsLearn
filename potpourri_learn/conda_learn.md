@@ -107,3 +107,6 @@ dependencies:
       - requests==2.31.0
       (see, its a sub-area)
 
+
+
+Conda terminal script

@@ -222,6 +222,8 @@ find . -type d \( \
   -name .mypy_cache \
 \) -prune -print
 
+-iname for case independent name, better if not sure
+
 find /path/to/directory -maxdepth 1 -type f
 
 maxdepth useful
@@ -377,8 +379,20 @@ the $(date) gets executed
 
 why quotes matter:
 
-file="my file.txt"
+file="my file.txt" (NO SPACES)
 rm $file becomes rm my file.txt, which is treated as 2 different arguments, with quotes, it becomes a single argument
+
+rm "$file" will enforce that it is one single string, and delete "my file.txt", not the 2 files "my" and "file.txt"
+
+**KEY**
+file=my file.txt is parsed as:
+
+file=my (string assignment, as everything is strings in the shell)
+file.txt is to be executed!
+
+**GLOBBING IS NOT PERFORMED INSIDE QUOTES**
+
+
 
 
 Single Quotes:
@@ -551,6 +565,10 @@ Single Star:
 
 results/*/*.npz also works, but it enforces it must be only 1 directory.
 
+
+KEY: These shell globs will be expanded by the shell, so if you dont want that, better to use them in quotes.
+When inside quotes, the shell glob will be passed as is to the executable, not expanding it, letting it use it as
+a argument.
 
 
 

@@ -1,5 +1,47 @@
 # Basic Commands
 
+# Vim Grammar
+
+Vim commands often follow this structure:
+
+[count] operator [count] motion/text-object
+
+Operators:
+d = delete
+y = yank
+c = change
+> = indent
+< = unindent
+= = auto-format/indent
+
+Motions:
+w = next word
+b = previous word
+e = end of word
+$ = end of line
+0 = beginning of line
+gg = top of file
+G = bottom of file
+
+Text objects:
+iw = inside word
+aw = around word
+i" = inside quotes
+a" = around quotes
+i) = inside parentheses
+a) = around parentheses
+ip = inside paragraph
+ap = around paragraph
+
+Examples:
+dw = delete word
+ciw = change inside word
+di" = delete inside quotes
+yap = yank around paragraph
+gg=G = auto-indent whole file
+
+
+
 ## Modes
 
 Vim has 3 modes:
@@ -14,7 +56,14 @@ lets you run commands via :.
 (to make a new terminal, control, alt t)
 
 to begin, use vim (file) to open a vim swap of the file:
-(everything you do is first done to the swap, then written to the file)
+When you open a file, Vim loads it into a buffer.
+You edit the buffer in memory.
+When you run :w, Vim writes the buffer to the actual file.
+A swap file is mainly for crash recovery, not the main thing you edit.
+
+buffer = text/file loaded in memory
+window = viewport showing a buffer
+tab = layout containing windows
 
 ## CURSOR:
 CURSOR IS A SQUARE, WITH IT GENERALLY BEING THE ONE BEFORE THE SELECTED CHARACTER, EXCEPT WHEN REPLACING CHARS.
@@ -52,14 +101,15 @@ KEY: pair with a number to move up or down that many lines
 - e E //endc of word, end of blank delimited word
 
 - ( ) //sentence back or forward
-note: sentence is defined as to a punctuation point
+note: sentence is defined as to a punctuation point + whitspace /newline after it
+hello.hi.howareyou is not 3 sentences
 
 - { } //paragraph back or paragraph forward
 
 - 0 $ beggining or end of line
 - 1G G //beggining and end of file
 
-- gg to go to the top of the line
+- gg to go to the top of the file
 
 - nG or :n //nth line of the file
 
@@ -74,6 +124,10 @@ lets you iterate between all of the character c in a line
 
 ## Deleting text
  (note: all deletion commands are performed followed by a motion)
+
+```text
+    d{ for example deletes a paragraph
+```
  exe: dw deletes a word
 
 - x X deletes character on cursor, vs char before the cursor
@@ -82,13 +136,25 @@ lets you iterate between all of the character c in a line
 (TRICK: use b, then dw to go to the beginning of the word, cursor being before first char, and delete to the next word,
 ie right before the next words first char, which is you last char of that word)
 
-- d deletes the line
+- dd deletes the line 
 :d does the same thing
+
+**KEY** dw means delete from cursor to teh end of the word
+just like D is from cursor to end of line
 
 ## Yanking text
 (same as deletion, y followed by motion)
 - y //follow with motion
 - yy to yank line
+
+
+
+### Yanking to Clipboard
+use system clipboard register "+
+
+"+yy to yank line or 
+"+y<motion> for more complex yank
+
 
 ## changing text
 
@@ -97,7 +163,103 @@ ie right before the next words first char, which is you last char of that word)
 - C //change to teh end of the line
 - cc // change to the end of the line
 
+ALSO GOOD BC DOESNT DELETE THE LINE
+
 ## putting test
 
 - p //put after position or aafter line
 - P // put before position or before line
+
+## finding text
+fa     " find next a on this line
+Fa     " find previous a on this line
+ta     " move until before next a
+Ta     " move until after previous a
+;      " repeat last f/F/t/T
+,      " repeat last f/F/t/T in opposite direction
+
+## text objects
+i = inside
+a = around
+
+iw     " inside word
+aw     " around word
+is     " inside sentence
+as     " around sentence
+ip     " inside paragraph
+ap     " around paragraph
+i"     " inside quotes
+a"     " around quotes
+i)     " inside parentheses
+a)     " around parentheses
+i}     " inside braces
+a}     " around braces
+
+exe:
+ciw    " change inside word
+di"    " delete inside quotes
+ya)    " yank around parentheses
+dap    " delete around paragraph
+
+Format here is <operator><textoption>
+
+operator is what to do, like d, c, y, v(visual select)
+
+exe:
+
+ciw => change inside work
+
+The quick brown fox
+    ^(cursor position)
+
+ciw changes(thereby removing) only "quick", once done enters insert mode
+
+caw is change around word, meaning work + whitespace
+
+exe2:
+The quick brown fox
+   ^(cursor position)
+
+ciw still changes quick, not the whitespace: The | brown fox (| means cursor here)
+caw will remove quick(space), as its 
+dw will delete just the space here, as its from cursor to end of word, so just one char
+
+**NOTE** when on space, it deletes/changes just that space, else behaves as expected.
+
+
+
+
+# Key VIM Ideas:
+vim isnt just a series of commands, but a full text editing language
+
+vim```
+[count] operator [count] motion/text-object
+```
+
+THis is the count-operator model, and key to understanding how vim works
+
+exe:
+dw     " delete word
+d$     " delete to end of line
+ciw    " change inside word
+dap    " delete around paragraph
+3dd    " delete 3 lines
+yG     " yank from here to end of file
+
+
+Also vim has more than 3 modes:
+Main modes:
+- Normal mode: move, edit, run operators, run commands
+- Insert mode: type text
+- Visual mode: select text
+- Command-line mode: commands after :, /, or ?
+- Replace mode: overwrite text
+
+
+
+
+# Neovim
+
+Most people nowadays use neovim + plugins, which is must more useful
+
+Key Differences
