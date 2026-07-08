@@ -1,12 +1,15 @@
-NOTE: init systems like systemd no NOT start processes
-that is done by the kernel vs exec() and fork()
+NOTE: init systems like systemd do NOT start processes
+Process creation is done by the kernel in responce to systemcalls like execve() and fork()
+
+
 
 instead, is it the first process to be started (called init) that manages the system:
 
 1: Bootstraps the system, meaning it lauches essential services like networking and login on start
-2: Manages services (service = thing hosted on server, by daemon) can start, stop, and manage
-3: Handles dependencies like how webserver needs networking
-4: handles task scheduling, devises, adn the like, but ess
+2: Manages services (service = backround, long running process hosted on server, by daemon, and handled by init system) can start, stop, and manage
+3: Handles dependencies by ensuring that services start in the correct order,
+like how webserver needs networking (dependencies as in needs them running to run something else)
+4: Managing the running system: handles task scheduling, devices, and the like, but ess
 
 
 exe:
@@ -24,15 +27,69 @@ sudo systemctl, which interacts with systemd to make it run by itself
 for something like nginx:
 FILE LIKE THIS:
 [Unit]
-Description=NGINX Web Server
-After=network.target
+Description=NGINX Web Server #Human-readable description of the service
+After=network.target #This means dont start NGINX untill AFTER network.target has been initialized
 
 [Service]
-ExecStart=/usr/sbin/nginx
-Restart=always
+ExecStart=/usr/sbin/nginx #Command systemd should run to start the service, interally systemd asks kernel to create new process using fork() and execve()
+Restart=always #if nginx exits unexpectedly, restart it automatically
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=multi-user.target #Whenever system reaches the normal multi-user operating state, 
+THIS SERVICE SHOULD ALSO BE STARTED. REACHING TARGET = SYSTEMD IS WORKING TO MATCH THE TARGET BY
+STARTING REQUIRED SERVICES.
+
+exe: mutli-user.target includes:
+sshd.service
+nginx.service
+mysql.service
+
+
+**TARGET** a target in systemd is a particular system state or milestone
+most common is **multi-user.target**, which means "System should have booted enough that multiple users can log in and normal system services should be running"
+Boot begins
+      │
+      ▼
+Basic system initialized
+      │
+      ▼
+Networking available
+      │
+      ▼
+multi-user.target
+      │
+      ├── SSH starts
+      ├── NGINX starts
+      ├── MySQL starts
+      └── Cron starts
+
+
+**SERVICE FILES**
+this information, about the
+[Unit]
+[Service]
+[Install]
+are part of the service files, like ssh.service
+
+They are found in 2 primary locations:
+
+/usr/lib/systemd/system/
+OR
+/lib/systemd/system/
+and custom services live in
+/etc/systemd/system/
+
+can view with
+systemctl cat nginx
+OR
+find file via systemctl status nginx
+Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled)
+and then cat that file or view it however
+
+
+
+
+
 
 
 At boot:

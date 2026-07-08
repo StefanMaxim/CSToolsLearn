@@ -469,9 +469,32 @@ are linking. (path is stagnant, so moving file messes up the symlink)
 (use man ln for more details)
 
 -s creates symbolic link
--f if target exists, unlink it so link may occur
+-f if target exists, unlink it so link may occur. Will generally just remove the target
+to let the linking work
+
 -i writes error in stderr if target already exists
--h/-n if target is a symbolic link, do not follow it. useful when replacing a symlink that may point to a directory
+-h/-n if target is a symbolic link, do not follow it. useful when replacing a symlink that may point to a directory **KEY WHEN TARGET IS A SYMLINK TO DIR**
+
+exe:
+given dir/
+and linkdir -> dir
+
+if you run:
+
+ln -s file linkdir, it will by default follow linkdir to dir/, and then create
+
+dir/file -> file, not linkdir -> file!!! need ln -snf file linkdir to work!
+
+**NOTE** run ls -ld outside of the directory, as if you cd'ed into it, it already evaluated
+the symlink so ld -ld gives info on current dir.
+ALSO, DO NOT PUT A TRAILING / HERE, SINCE IT WILL EVALUATE IT!!
+
+TRAILING SLASH, IN THE WAY THAT THE KERNEL PARSES IT, MAKES IT EVALUATE THE LAST TOKEN OF THE PATH:
+
+/usr/bin
+has tokens "usr", "bin", which does not force shell to evaluate the last token beyond the fact
+that is is a dentry. whereas /usr/bin/ forces it to resolve the last token, which will often
+run the link anyways, and give you inaccurate results. (READ FILESYSTEM INTRO!!!)
 
 
 
