@@ -127,8 +127,14 @@ PID 1 (init/systemd)
 processes are created using:
 
 fork() -> duplicate process
+**KEY** modern kernels use copy-on-write, meaning the forked process shares the same underlying memory pages untill a 
+write occurs, because its usually not worth copying over all of that process's memory bc its often followed by execve
+which deletes it all anyways
 
 exec() -> replaces the processes's memory (all of it) with the new layout as specified in the executable
+**KEY** it does NOT replace the entire process, only that process's userspace! the kernel space of that process
+remains, which is the one that contains stuff like the kernel file descriptor table!
+HOWEVER: each process has its own file descriptor table, so its global in visibility, but local in scope
 
 so everything forms a tree rooted at PID1
 

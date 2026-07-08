@@ -496,7 +496,7 @@ hello
 world
 EOF
 
-is teh same as cat from a document whose input was "hello \n world"
+is the same as cat from a document whose input was "hello \n world\n"
 (EOF here is just a marker, it could be any other string you desire, with no quotes around it)
 
 so cat [file1] [file2] means read those files and output then to stdout or whatever is your output
@@ -573,4 +573,289 @@ a argument.
 
 
 ### REGEX
+
+
+
+### Pipes and Redirects (WIP)
+
+Pipes "|" connects teh standard output of the command on the left to the standard input of the command on the right.
+
+**KEY**
+stdin, stdout, and stderr are just file descriptors, defaulting to 
+Keyboard ───► stdin (fd 0)
+Terminal ◄── stdout (fd 1)
+Terminal ◄── stderr (fd 2)
+
+#### **FILE DESCRIPTORS** 
+are just numbers used in a linux process to refer to different periferals, dictated by a 
+kernel-side file descriptor table.
+
+
+when you read(0, buf, 100);, its saying "read from whatever file descriptor 1 refers to"
+The operating system keeps another data structure that represents an open file (more generally, an open I/O object).
+a regular file
+a terminal
+a pipe
+a TCP socket
+a device like /dev/null
+
+
+**NOTE** file descriptOR is the number, file descriptION is the datastructure representing the open file
+containing things like current file offset, file status flags (O_APPEND, O_NONBLOCK, etc.), pointer to the underlying inode or file object, and reference count.
+
+IN PRACTICE:
+
+echo hello > out.txt
+
+1: Before running echo, shell opens out.txt
+This returns a new file descriptor, say
+fd 3 -> out.txt
+
+2: Forks process, using fork()
+
+3: In new child process, Copies fd3 onto fd1
+fd1 -> out.txt
+fd3 -> out.txt
+
+4: closes fd3
+fd1 -> out.txt
+
+5: Then, it starts echo via execve()
+where the child process of echo will already have the modified file descriptor table. 
+**NOTE** THIS IS BECAUSE EACH PROCESS'S FILE DESCRIPTOR TABLE IS KERNEL-SIDE, SO REMAINS AFTER EXECVE
+that being said, each process has its own table, however they can point to the same description after a fork.
+
+These file descriptions are stored in the kernel in a larger table. However
+**CRUTIAL** you cannot see these tables in kernelspace!
+
+you can only interact with them via systemcalls, like open, which return the file descriptor you can use
+but you cannot directly edit the tables
+
+**Crutial Processes**
+You load in kernelspace into the process, but that stuff is shared among all processes, and has vastly different perms
+than usual. Most programs cannot access kernelspace, but it is loaded into the process for speed of systemcalls. 
+
+Virtual address space of Process A
+
++----------------------------+
+|                            |
+| User space                 |
+|                            |
+|  program code              |
+|  heap                      |
+|  stack                     |
+|  shared libraries          |
+|                            |
++----------------------------+
+|                            |
+| Kernel space               |
+|                            |
+| kernel code                |
+| kernel data structures     |
+| process tables             |
+| file descriptor tables     |
+| page tables                |
+| device drivers             |
+|                            |
++----------------------------+
+You need kernel priviledges to access kernelspace ofc.
+
+
+Thus, when you 
+
+echo hello > out.txt
+
+first open via syscall: fd = open("output.txt", O_WRONLY | O_CREAT | O_TRUNC); #fd = 3 for now for example
+
+then, duplicate it into 1: dup2(fd,1) #copies file description in 3 into entry 1
+
+lastly, close the last one close(fd) (THIS IS FOR CHANING THE OUTPUT, THE INPUT IS DETERMINED FROM COMMAND LINE ARGS)
+
+
+
+
+Before:
+
+Process (PID 1234)
+
+Kernel state:
+    File descriptor table
+        0 -> terminal
+        1 -> out.txt
+        2 -> terminal
+    PID = 1234
+    Current directory = /home/alice
+    UID = 1000
+    ...
+
+User-space:
+    bash code
+    bash stack
+    bash heap
+
+
+After:
+Process (PID 1234)
+
+Kernel state:
+    File descriptor table
+        0 -> terminal
+        1 -> out.txt
+        2 -> terminal
+    PID = 1234
+    Current directory = /home/alice
+    UID = 1000
+    ...
+
+User-space:
+    echo code
+    echo stack
+    echo heap
+
+
+
+
+For pipes, its usually different in that pipes created before the fork
+
+exe:
+
+ls | grep txt
+
+the shell does:
+
+pipe(pipefd);
+fork();   // child 1
+fork();   // child 2
+
+pipe() is used when you want to have inter-communication between processes.
+when you want to send stuff between processes, one method is using a pipe
+
+A pipe is a communication channel made my the kernel, living in the kernel
+One process puts bytes into it, and another reads bytes out of it.
+When created, kernel allocates a pipe buffer where bytes can be stored in transit, and 2 new kernel file descriptions(aka file descriptor entries),
+a read and a write object that lets you read and write to the buffer respectively
+
+Current Process's File Descriptor Table:
+Initial:
+
+fd 0 -> stdout
+fd 1 -> stdin
+fd 2 -> stderr
+
+Final:
+
+fd 0 -> stdout
+fd 1 -> stdin
+fd 2 -> stderr
+fd 3 -> pipe read #NOTE, doesnt have to be 3 and 4, its just whatever 2 numbers is returned in the array fd
+fd 4 -? pipe write
+
+usage:
+
+int fd[2] # this creats a 2 element array [fd[0], fd[1]], used to store the file descriptors the kernel gives us
+fd[0] is the read end, and fd[1] is the write end
+
+pipe(fd) # here, you are passing the address of the first element of the array, and the kernel fills in the 
+file descriptors for the read end and write end. NOTE: the kernel does not give you the read/write objects themselves,
+just 2 numbers you can use to refer to them.
+
+thus, after calling:
+
+int fd[2]
+pipe(fd)
+
+how have 
+fd 0 -> stdout
+fd 1 -> stdin
+fd 2 -> stderr
+fd 3 -> pipe read #NOTE, doesnt have to be 3 and 4, its just whatever 2 numbers is returned in the array fd
+fd 4 -? pipe write #NOTE, need 2 descriptors so kernel can enforce directions, only read from read and only write to write
+
+
+Next, the forks, to create the two twin processes.
+fork()
+fork()
+
+Then:
+
+Child 1:
+
+dup2(pipefd[1], STDOUT_FILENO); # now, its stdout is the write end of the pipe
+execve("ls", ...);
+
+Child 2:
+
+dup2(pipefd[0], STDIN_FILENO); # and this stdin is the read end of the pipe
+execve("grep", ...);
+
+Thus, when you run them, child 2 wont run untill recieved input in stdin, and child 1 will run, and its output
+will go to child 2's stdin, letting it run then and completing the pipe.
+
+
+
+
+
+
+What about stuff like:
+
+cat ~/.ssh/id_ed25119_linux_desktop | ssh bob@100.223.13.14 "cat >> ~/.ssh/authorized_keys"
+
+The cats do interact here, but not directly.
+
+flow: currently in some process, exe PID 1234
+
+
+First, creates pipe. (doesnt open the file, that happens way later)
+
+int pipefd[2]
+pipe(pipefd) # creates kernel side pipe object with its buffer, and read and write objects with descirptors here
+
+f1 0 stdin 
+f2 1 stdout
+fd 2 stderr
+fd 3 pipe read
+fd 4 pipe write
+
+Next it forks the first child
+fork()
+and
+dup2(pipefd[1],1)
+
+Now
+f1 0 pipe write 
+f2 1 stdout
+fd 2 stderr
+fd 3 pipe read
+fd 4 pipe write
+
+and closes redundant fd:
+close(pipefd[0]) #not needed so might as well close
+close(pipefd[1])
+
+f1 0 pipe write 
+f2 1 stdout
+fd 2 stderr
+
+
+Next, it runs the command:
+
+execve("/bin/cat", ["cat", "file"], ...) #which recall only overrides the userspace, the stuff we did up to now is safe
+
+at init, cat now sees:
+stdin(0) -> terminal
+stdout(1) -> pipe write
+stderr(2) -> screen often
+
+However, it recieved argument "file"
+so cat itself does
+int fd = open(file)
+and thereby makes it:
+
+fd 0 -> keyboard
+fd 1 -> pipe write
+fd 2 -> stderr
+fd 3 -> file
+
+and then cat will read from file and write to stdout (the pipe)
+**NOTE** no need to dup2 and close to change what stdin is here, as for input it just goes by command line args
 
