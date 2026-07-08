@@ -195,7 +195,7 @@ find searches for files/directories that matches the rules you specify
 
 find WHERE CONDITIONS ACTION
 
-find . -type f (searches for files in current directory, -type d for directories)
+find . -type f (searches for files in current directory, -type d for directories, -type l for symlinks)
 
 -name "*.py" (searches for all .py files)
 

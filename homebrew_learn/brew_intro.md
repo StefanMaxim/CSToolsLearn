@@ -12,6 +12,7 @@ basically, this gets the file as requested from the url, and then runs the insta
 IDEA:
 instead of manually hunting down installers, extracting tarballs, and changing your path, this does it for you
 It installs software in its own directories, and symlinks it to the Homebrew prefix (recall: symlink = still an inode, but the contents are just the path to another place in your directory)
+**KEY** CELLAR IS NOT THE SAME AS THE PREFIX!!!! /opt/homebrew vs /opt/homebrew/Cellar/rack/keg
 
 default prefix: opt/homebrew
 
