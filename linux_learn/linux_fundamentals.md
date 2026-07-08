@@ -667,6 +667,8 @@ echo hello > out.txt
 
 first open via syscall: fd = open("output.txt", O_WRONLY | O_CREAT | O_TRUNC); #fd = 3 for now for example
 
+then forks
+
 then, duplicate it into 1: dup2(fd,1) #copies file description in 3 into entry 1
 
 lastly, close the last one close(fd) (THIS IS FOR CHANING THE OUTPUT, THE INPUT IS DETERMINED FROM COMMAND LINE ARGS)
@@ -822,8 +824,8 @@ and
 dup2(pipefd[1],1)
 
 Now
-f1 0 pipe write 
-f2 1 stdout
+f1 0 stdin 
+f2 1 pipe write
 fd 2 stderr
 fd 3 pipe read
 fd 4 pipe write
@@ -832,8 +834,8 @@ and closes redundant fd:
 close(pipefd[0]) #not needed so might as well close
 close(pipefd[1])
 
-f1 0 pipe write 
-f2 1 stdout
+fd 0 stdin
+fd 1 pipe write
 fd 2 stderr
 
 
@@ -858,4 +860,47 @@ fd 3 -> file
 
 and then cat will read from file and write to stdout (the pipe)
 **NOTE** no need to dup2 and close to change what stdin is here, as for input it just goes by command line args
+
+
+
+CONTINUING:
+cat ~/.ssh/id_ed25119_linux_desktop | ssh bob@100.223.13.14 "cat >> ~/.ssh/authorized_keys"
+
+Child process 2:
+
+after fork, it will 
+dup(fd[0],0)
+close(fd[0])
+close(fd[1])
+
+so now its
+
+fd 0 -> pipe read
+fd 1 -> stdout
+fd 2 -> stderr
+
+now the key:
+now, it will execute the cat
+
+by default, its uses stdin when no command line args (lucky for us its pipe read)
+and will have its stdout redirected to some file
+
+Thus, will first open the file, call it file2
+
+int fd = open(file2)
+
+Then it will fork because of the redirect
+
+fork()
+
+Then, it will change the stdout to fd 
+dup2(fd,1)
+close(fd)
+
+Then it will execute 
+
+execve(cat), which will, when no command line args do stdin to stdout, or pipe in to file2.
+
+
+
 
