@@ -223,6 +223,8 @@ ld \
 
 (the pure linker version)
 
+(ld = linker, ld-linux is the dynamic loader/linker)
+
 it also adds:
 crt1.o
 crti.o

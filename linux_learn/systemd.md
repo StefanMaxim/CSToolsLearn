@@ -86,6 +86,227 @@ find file via systemctl status nginx
 Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled)
 and then cat that file or view it however
 
+SSH Actual .service file:
+
+[Unit] # describes service and dependencies
+Description=OpenBSD Secure Shell server # human-readable description
+Documentation=man:sshd(8) man:sshd_config(5) # points to documentation manual for sshd and sshd_config
+After=network.target nss-user-lookup.target auditd.service #dont start untill after these are up
+**KEY** this doesnt force them to start, just says wait untill they do. Use Requires=  or Wants= for that
+ConditionPathExists=!/etc/ssh/sshd_not_to_be_run #a condition that the file must not exist,
+(! means not), so if file exists, will not start ssh
+
+[Service] #everything about the actual daemon
+EnvironmentFile=-/etc/default/ssh # loads environment variables from here, - means ignore it if it doesnt exist. **NOTE** $SSHD_OPTS comes from here
+ExecStartPre=/usr/sbin/sshd -t # run this before starting, -t means test the configuration for syntax errors
+ExecStart=/usr/sbin/sshd -D $SSHD_OPTS # this is teh real command, -D means dont Daemonize. **NOTE** sshd normally forks itself into the backround, but systemd doesnt want that so it can supervise it
+ExecReload=/usr/sbin/sshd -t # when someone runs systemctl reload ssh, first checks config
+ExecReload=/bin/kill -HUP $MAINPID # next, it config valid, send SIGHUP to main sshd process, which means reload your config without disconnecting users, MAINPID filled in systemd
+
+**NOTES ON KILL** CONTRARY TO NAME, KILL IS USED FOR SENDING SIGNALS TO PROCESSES.
+/bin/kill [signal] PID
+/bin/kill -SIGNAL PID
+so /bin/kill -HUP PID, sends SIGHUP to PID 1234 (like how -lc is really libc)
+-HUP originally meant that terminal connection was closed, but today can be interpreted as 
+reload configs, reopne logs, refhresh state without exiting, depends on program.
+
+KillMode=process # when stopping process, treat as proces (control-group default, process, mixed, none) process means only kill the main sshd process, not every child process.
+Important because every SSH login is a child process, so stopping the daemon doesnt immediatley kill logged in users
+
+
+Restart=on-failure #if crashes, restart it, but dont restart if intentionally stopped
+RestartPreventExitStatus=255 # one exception: if exit with status 255, dont restart it. 255 means fatar startup errors like config problem
+
+Type=notify # how systemd knows service is ready, types in clude
+simple, forking, oneshot, notify, idle.
+notify means the service sends a message to systemd saying "im ready", untill then, systemd
+considers it "starting"
+
+
+
+
+RuntimeDirectory=sshd # creates /run/sshd before starting, which disappears on reboot.Useful for runtime files like sockets or PID-related state
+
+
+RuntimeDirectoryMode=0755 # perms for runtime dir, 
+0 means owner, then read = 4 write = 2 ex = 1
+7 = rwx (owner)
+5 = rx (group)
+5 = rx (others)
+
+[Install]
+WantedBy=multi-user.target #when system reaches that target, thats when you start the service.
+How it works:
+this practically means "symlink this service file such that multi-user.target wants it"
+
+CREATES THIS SYMLINK ON ENABLE
+/etc/systemd/system/multi-user.target.wants/ssh.service
+    -> /lib/systemd/system/ssh.service
+
+
+
+Alias=sshd.service # creates an alias for it, which may coincide with the actual name in some
+distros. EXE: some call it ssh.server, but people expect sshd.service, so this makes both work:
+systemctl enable ssh
+systemctl enable sshd
+
+gclocal@gclocal-MS-7E59:/usr/lib/systemd/system$ ls -ld ssh.service
+-rw-r--r-- 1 root root 561 Mar 12 07:14 ssh.service
+
+gclocal@gclocal-MS-7E59:/usr/lib/systemd/system$ ls -ld sshd.service 
+lrwxrwxrwx 1 root root 11 Apr 27 17:15 sshd.service -> ssh.service
+
+can add in ls -i to see inode to see if its teh same
+
+
+
+
+And the socket:
+[Unit]
+Description=OpenBSD Secure Shell server socket #human readable
+Before=sockets.target ssh.service #start this socket before sockets.target, and ssh.service.
+Useful when using socket activation, since systemd want the listing socket ready before it starts the ssh daemon
+
+ConditionPathExists=!/etc/ssh/sshd_not_to_be_run #again only runs if the file not present
+
+[Socket]
+ListenStream=0.0.0.0:22 ## listens for TCP connection on IPv4 port 22.
+**NOTE** 0.0.0.0 means every IPv4 address on this machine, equivalent to
+192.168.1.5:22
+10.0.0.3:22
+127.0.0.1:22
+ALL AT ONCE
+
+ListenStream=[::]:22 # listens on IPv6 port 22, where [::] is the IPv6 equivalent of 
+0.0.0.0, meaning every IPv6 address
+
+
+
+BindIPv6Only=ipv6-only #normally, on Linux, IPv6 sockets can sometimes accept IPv4 connections
+IPv4 mapped Ipv6 addresses, but this option says don tdo that, keep the IPv6 socket strictly 
+IPv6. Thus, you end up with 2 sockets
+
+
+Accept=no ## **VERY IMPORTANT** 
+There are 2 modes:
+Accept=no
+means one service handles all incoming connections:
+systemd
+     │
+ listens on :22
+     │
+     ▼
+starts ssh.service
+     │
+     ▼
+sshd accepts every client
+(One long-running daemon)
+
+Accept=yes
+means each incoming connection gets its own service instance
+
+client 1
+      ▼
+sshd@1.service
+
+client 2
+      ▼
+sshd@2.service
+
+client 3
+      ▼
+sshd@3.service
+
+OpenSSH uses Accept=no because it is designed to handle multiple connections simultaneously
+
+FreeBind=yes #Normally, a program can only bind to an IP address that already exists on teh machine.
+exe:
+Machine has 192.168.1.10
+trying to bind 192.168.1.20 would fail, FreeBind=yes tells systemd bind anyways, even if that 
+address doesnt exist yet
+
+This is useful if:
+
+networking isn't fully configured yet,
+the IP will appear later,
+the address is managed by DHCP,
+the address is a floating IP in a high-availability setup.
+
+
+**ASIDE ON SOCKETS**
+READ SOCKETS_LEARN.MD
+
+
+
+
+
+
+[Install]
+WantedBy=sockets.target #symlinks this files into teh want sections of that socket like before
+RequiredBy=ssh.service # this is teh inverse of Requires=, when the service is enabled, systemd
+knows that it requires the socket to be enabled as well.
+This is mostly for systemctl enable/disable, not so that ssh.service starts because ssh.socket is active.
+
+
+
+
+
+Socket Activation:
+When teh socket is enabled:
+Boot
+ │
+ ▼
+systemd
+ │
+ ▼
+ssh.socket starts
+ │
+ ▼
+Port 22 is open
+ │
+ ▼
+(No sshd process running yet)
+
+Then, when a client connects, 
+Laptop
+   │
+SSH to port 22
+   │
+   ▼
+systemd receives the connection
+   │
+   ▼
+Starts ssh.service
+   │
+   ▼
+Passes the already-open listening socket to sshd
+   │
+   ▼
+sshd begins handling SSH sessions
+
+**NOTE** generally, ssh is enabled the traditional way via systemctl enable ssh, not
+this other method.
+
+
+And the target are 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

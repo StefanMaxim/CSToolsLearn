@@ -153,7 +153,7 @@ grep -rin "error" .
 grep -r "useState" --include="*.jsx" . (forces that files have certain extension)
 grep -r "TODO" . --exclude-dir=node_modules (excludes certain directories)
 grep -r "TODO" . --exclude="*.min.js" (excludes certain files)
-(NO INCLUDE DIR OPTION)
+(NO INCLUDE DIR OPTION) **NOTE** only works when looking at files/dirs! ls | grep doesnt work here
 
 **NOW REGEX TIME!!!**
 
@@ -171,6 +171,11 @@ grep -E "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}" file.txt
 (matches email, kinda)
 
 -F means LITERAL STRING, or FIXED STRING, WILL IGNORE THE . IN REGEX STUFF
+
+**NOTE** GREP USES REGEX, NOT SHELL GLOBS!!!
+"ssh*.service" doesnt work!! in regex it has different meaning
+
+
 
 
 NOTE:
@@ -362,6 +367,17 @@ underlying debian package installer (look at packages_learn.md for more info)
 
 ### man
 - man (cmd) // checks the manual for how to use a command
+
+
+### ls
+
+ls to show files
+
+-l is long format, for more info
+-d means dont look inside directories
+-i means show inodes
+
+whenever it shows l in the description, its a symlink
 
 ### single quotes, double quotes, and commmand substitution
 - "" vs '' vs $() and how they interplay in commands like
