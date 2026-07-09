@@ -83,7 +83,7 @@ void hello() {
     printf("Hello from my library");
 }
 
-
+#### ar
 Now, make the library:
 
 Statically linked:
@@ -96,7 +96,7 @@ ar rcs libmylib.a mylib.o (Created static library)
 ar = archiver program, used to bundle object files into a single static archive (a static library)
 r = replace/isert files into archive: if libmylib.a exists replace /update it
 c = create archive if doesnt exist + suppresses warning
-s = indexes the archive (builds symolic table so linkers can find functions faster)
+s = indexes the archive (builds symbol table so linkers can find functions faster)
 libmylib.a is the output file, by convention .a on linux
 libmylib.o is the compiled object file being added to the library
 
