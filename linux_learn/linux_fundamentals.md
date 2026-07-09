@@ -275,7 +275,15 @@ tar -czf archive.tar.gz /folder  (MUST BE CLEAR WITH THE EXTENSIONS, AS THEY ARE
 -u like r, but only adds it modification date newer than corresponding entry in the archive
 (results is called TARBALL)
 
--f means read the archive from or write the archive to the specified file.(changes use based on c vs xq)
+**KEY**
+-C means change directory, which changes where it extracts files
+
+-f means read the archive from or write the archive to the specified file.(changes use based on c vs x)
+-f on c means write the new archive to whatever is after f
+-f on x means read from whatever archive is listed after f
+If NO -f SPECIFIED, WILL DEFAULT TO STDOUT for -c AND STDIN for -x
+cat archive.tar | tar -x works for example.
+
 **A tar archive (tar) stores:**
 
 filenames
@@ -289,6 +297,24 @@ Tarballs = Universal , tar is OS-based but abstracts away OS specific details
 to work, it uses syscalls like open() read() write() mkdir() chmod() when on POSIX compliant systems like mac and linux
 
 
+exe:
+
+tar -<options> -f <archive-name> <files...>
+
+tar -xzf filename.tar.gz 
+
+tar -xzf backup.tar.gz -C /tmp
+
+tar -cf archive.tar file1 file2 dir/
+
+tar -czf archive.tar.gz /folder 
+
+
+
+
+
+
+
 
 
 
@@ -300,7 +326,7 @@ gzip -d file //de-comrpesses the file
 gzip -k file //**CRUTIAL** ZIP DELETES THE ORIGIONAL FILE, SO THIS MAKES SURE TO KEEP IT
 gzip -c file //does not modify file, instead writes compressed version to stdout
 
-gzip -c file >> file.gz
+gzip -c file >> file.gz  #THIS IS THE MAIN WAY TO CHANGE WHERE IT GOES, AS GZIP COMPRESSES IN PLACE
 or -dc
 
 -v verbose
@@ -650,7 +676,7 @@ echo hello > out.txt
 This returns a new file descriptor, say
 fd 3 -> out.txt
 
-2: Forks process, using fork()
+2: Forks process, using fork() //USES COPY-ON-WRITE, meaning shares underlying memory pages until a write occurs
 
 3: In new child process, Copies fd3 onto fd1
 fd1 -> out.txt
@@ -943,3 +969,74 @@ execve(cat), which will, when no command line args do stdin to stdout, or pipe i
 
 
 
+**NOTE** cannot do something like
+
+echo < hello.txt > out.txt (not echo < "hello" > out.txt, bc will say no file called "hello" as input redirection
+says open file and use it as programs stdin)
+
+Doesnt work bc echo reads from command line args, so its the same as echo > out.txt
+but generally, this just:
+
+1:
+Shell parses the command
+It sees:
+command: echo
+arguments: ["echo", "hello"]
+stdout redirection: out.txt
+
+2:
+Shell opens out.txt
+
+Conceptually:
+
+fd = open("out.txt", O_WRONLY | O_CREAT | O_TRUNC, 0666);
+
+This creates the file if needed, or truncates it if it already exists.
+
+3:
+Shell forks
+
+pid = fork();
+
+Now there is a child process that will become echo.
+
+4:
+Child duplicates the file descriptor onto stdout
+
+dup2(fd, STDOUT_FILENO);
+
+Now:
+
+fd 3  ---> out.txt
+fd 1  ---> out.txt
+
+File descriptor 1 (stdout) now points to out.txt.
+
+5:
+Child closes the extra file descriptor
+
+close(fd);
+
+Now:
+
+fd 1 ---> out.txt
+
+6:
+Child calls execve
+
+Something like:
+
+execve("/usr/bin/echo",
+       ["echo", "hello"],
+       envp);
+
+The echo program starts running. When it writes:
+
+write(1, "hello\n", 6);
+
+it goes into out.txt instead of the terminal.
+
+7:
+Parent shell waits
+
+The shell waits for echo to finish, then displays the next prompt.
