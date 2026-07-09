@@ -86,21 +86,32 @@ find file via systemctl status nginx
 Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled)
 and then cat that file or view it however
 
+
+
+
+## SERVICE FILE BREAKDOWN
 SSH Actual .service file:
 
 [Unit] # describes service and dependencies
-Description=OpenBSD Secure Shell server # human-readable description
+Description=OpenBSD Secure Shell server # Human-readable description of the service
+
 Documentation=man:sshd(8) man:sshd_config(5) # points to documentation manual for sshd and sshd_config
+
 After=network.target nss-user-lookup.target auditd.service #dont start untill after these are up
 **KEY** this doesnt force them to start, just says wait untill they do. Use Requires=  or Wants= for that
+
 ConditionPathExists=!/etc/ssh/sshd_not_to_be_run #a condition that the file must not exist,
 (! means not), so if file exists, will not start ssh
 
 [Service] #everything about the actual daemon
 EnvironmentFile=-/etc/default/ssh # loads environment variables from here, - means ignore it if it doesnt exist. **NOTE** $SSHD_OPTS comes from here
+
 ExecStartPre=/usr/sbin/sshd -t # run this before starting, -t means test the configuration for syntax errors
+
 ExecStart=/usr/sbin/sshd -D $SSHD_OPTS # this is teh real command, -D means dont Daemonize. **NOTE** sshd normally forks itself into the backround, but systemd doesnt want that so it can supervise it
+
 ExecReload=/usr/sbin/sshd -t # when someone runs systemctl reload ssh, first checks config
+
 ExecReload=/bin/kill -HUP $MAINPID # next, it config valid, send SIGHUP to main sshd process, which means reload your config without disconnecting users, MAINPID filled in systemd
 
 **NOTES ON KILL** CONTRARY TO NAME, KILL IS USED FOR SENDING SIGNALS TO PROCESSES.
@@ -160,7 +171,7 @@ can add in ls -i to see inode to see if its teh same
 
 
 
-
+## SOCKET FILE BREAKDOWN
 And the socket:
 [Unit]
 Description=OpenBSD Secure Shell server socket #human readable
@@ -288,7 +299,220 @@ sshd begins handling SSH sessions
 this other method.
 
 
-And the target are 
+## TARGET FILE BREAKDOWN
+And the target are:
+
+multi-user.target
+
+      # SPDX-License-Identifier: LGPL-2.1-or-later
+      #
+      #  This file is part of systemd.
+      #
+      #  systemd is free software; you can redistribute it and/or modify it
+      #  under the terms of the GNU Lesser General Public License as published by
+      #  the Free Software Foundation; either version 2.1 of the License, or
+      #  (at your option) any later version.
+
+[Unit]
+Description=Multi-User System  #user-generated description of the file
+Documentation=man:systemd.special(7) # location for the documentation
+Requires=basic.target #
+Conflicts=rescue.service rescue.target
+After=basic.target rescue.service rescue.target
+AllowIsolate=yes
+
+
+
+## INTERPLAY:
+
+When A Linux Machine boots, it roughly goes :
+
+firmware
+  -> bootloader
+      -> Linux kernel
+          -> optional initramfs/initrd userspace (more on that later)
+              -> real root filesystem
+                  -> /sbin/init
+
+where /sbin/init is usually a symlink to systemd.
+since systemd is first userspace process, it runs as PID 1, making it the system init process, whose job is to bring up
+and maintain userspace services.
+
+
+Very early, systemd does some built-in setup like:
+set up basic API filesystems like /proc, /sys, /dev
+configure basic things like hostname/loopback
+install signal handlers
+initialize logging connections, etc...
+
+But then it descides, "What is the initial unit I should try to activate?"
+
+By default, that is default.target, but it can be overridden via a kernel command line option like
+systemd.unit=rescue.target
+
+**KEY** thus, boot is start PID 1, then figure out how to activate default.target, not how to read all service files.
+
+Here is sample of default.target:
+
+      #  SPDX-License-Identifier: LGPL-2.1-or-later
+      #
+      #  This file is part of systemd.
+      #
+      #  systemd is free software; you can redistribute it and/or modify it
+      #  under the terms of the GNU Lesser General Public License as published by
+      #  the Free Software Foundation; either version 2.1 of the License, or
+      #  (at your option) any later version.
+
+[Unit]
+Description=Graphical Interface
+Documentation=man:systemd.special(7)
+Requires=multi-user.target #HUH? REASON IS THAT DEFAULT.TARGET IS THE DESTINATION, NOT THE STARTING POINT!
+Wants=display-manager.service
+Conflicts=rescue.service rescue.target
+After=multi-user.target rescue.service rescue.target display-manager.service
+AllowIsolate=yes
+
+default.target
+        |
+        v
+multi-user.target
+   /      |      \
+network  sshd   getty
+
+
+### Aside on Units:
+A Unit is a systemd internal object for something it can manage
+exe:
+sshd.service          a service process
+multi-user.target     a grouping/synchronization point
+sockets.target        a grouping of sockets
+dbus.socket           a listening socket
+home.mount            a mounted filesystem
+dev-sda.device        a kernel device object
+
+a **UNIT FILE** is an INI-style that describes those unit objects, .service, .socket, .target are such files
+**NOTE** a Unit file is not the unit itself, but rather the config used to construct the in-memory unit object
+
+Systemd units can come from many different places:
+/usr/lib/systemd/system/     package-provided units
+/etc/systemd/system/         admin overrides/custom units
+/run/systemd/system/         runtime units
+/run/systemd/generator*/     generated units
+transient D-Bus-created units
+kernel/device state
+
+this is called the **Load Path** essentially where systemd finds its units, with files in earlier
+path locations overriding ones in later paths
+
+
+WHen systemd want ssh.service, it conceptually runs:
+load_unit("sshd.service"):
+    find main unit file in load path
+    read [Unit], [Service], [Install], etc.
+    read drop-ins, such as sshd.service.d/*.conf
+    read dependency symlink directories:
+        sshd.service.wants/
+        sshd.service.requires/
+    apply implicit dependencies
+    apply default dependencies
+    create/update in-memory Unit object
+
+Result: in memory object with properties
+Name=sshd.service
+Type=service
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+Wants=...
+Requires=...
+Before=...
+After=...
+ExecStart=...
+Restart=...
+
+systemctl list-units only lists ones referenced directly or indirectly in teh dependency graph, not all on disk
+
+### Unit States
+
+Every unit has a current state, exe:
+
+inactive
+activating
+active
+deactivating
+failed
+
+The High-Level state is called **ACTIVE** and the more precise type-specific state is called **SUB**
+exe:
+ACTIVE=active
+SUB=running
+
+**KEY**
+Thus, a unit object has a **current reality**:
+"sshd.service is currently active/running"
+But when you ask systemd to do something, you create a **requested transition**
+exe:
+please start sshd.service
+please stop sshd.service
+please restart sshd.service
+That requested transition is a **job**
+
+
+### Jobs
+A job is a systemd internal record that says "move this unit towards a desired state"
+exe:
+start job for sshd.service
+stop job for nginx.service
+restart job for postgresql.service
+reload job for systemd-journald.service
+
+Think of a job like:
+struct Job {
+    Unit *unit;          // pointer to the unit it modifies
+    JobType type;        // START, STOP, RESTART, RELOAD, ...
+    JobState state;      // waiting, running, done, failed, canceled, ...
+    JobResult result;    // success, dependency, timeout, skipped, ...
+}
+
+**KEY** A unit can have a job attached to it, called the unit's **job property**
+If a unit contains a currently scheduled or executing job, the property contains it jobID and job object path, 
+else the job ID is 0.
+
+systemctl show ssh.service -p Job
+
+systemctl show ssh.service -p Job --value
+then 
+systemctl list-jobs
+
+Or over D-Bus
+busctl introspect org.freedesktop.systemd1 \
+    /org/freedesktop/systemd1/job/123
+
+**NOTE** Systemctl show gives only the JobId, but D-Bus via busctl you will see the full object path (LOOK INTO LATER)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Before, After, Requires, RequiredBy, Wants, WantedBy, etc...
+
+**KEY MODEL** Units, Jobs, and Transactions
+
+Systemd does not boot by reading files top-down like a shell, instead, it uses a graph of units
+
+a **UNIT** can be a service, socket, target, mount, timer, device, and so on
+a **UNIT FILE** is an INI-style that describes those unit objects, .service, .socket, .target are such files
 
 
 
@@ -312,6 +536,24 @@ And the target are
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Boot Process
 
 At boot:
 systemd starts (first program after the kernel)
