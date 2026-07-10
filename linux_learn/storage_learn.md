@@ -30,7 +30,7 @@ Disk
 Thus, if one partition became full, while the others had a lot of space, you would have to resize the partitions, which is
 slow and risky
 
-- Instead, the contain owns all of the storage, and all the volumes share the available space dynamically.
+- Instead, the container owns all of the storage, and all the volumes share the available space dynamically.
 This way, the system and your data can live on separate volumes while sharing the same free space. good for isolation, but still nice for dymanic space allocatin.
 
 - Also, recovery volumes do not need fixed sizes, which is great to not waste space
