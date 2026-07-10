@@ -1,4 +1,4 @@
-
+# Linux 
 
 Linux is realy GNU + Linux
 
@@ -70,3 +70,27 @@ Boot Order:
 3. Kernel (linux kernel)
 4. Init System (systemd)
 5. Everything else (services, login, networks, etc)
+
+## Shell vs Terminal
+
+Shell = zsh or bash, a program that lets you interpret the messages you write
+
+Terminal = a program that allows you to interact with a computer using text.
+
+Order:
+You
+  │
+  ▼
+Terminal
+  │
+  ▼
+Shell (e.g., bash or zsh)
+  │
+  ▼
+Operating System
+  │
+  ▼
+Output
+  │
+  ▼
+Terminal displays the result
