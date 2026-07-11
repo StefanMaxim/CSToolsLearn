@@ -500,6 +500,19 @@ busctl introspect org.freedesktop.systemd1 \
 
 **NOTE** Systemctl show gives only the JobId, but D-Bus via busctl you will see the full object path (LOOK INTO LATER)
 
+Thus, when you run systemctl start sshd.service, systemctl does not itself start sshd, but
+rather it talks to systemd PID 1 and asks it to start the unit via the D-Bus API, which 
+defines a method StartUnit(), as enqueing a start job and possibly depending jobs. 
+It returns a job object, and clients must watch that job if they want the final result.
+
+systemctl start sshd.service
+    -> send StartUnit("sshd.service", "replace") to PID 1
+        -> PID 1 creates Job(type=start, unit=sshd.service)
+
+KEY IDEA: when you start a service, it does not do it right away, instead it just 
+creates the job object for what you want to do.
+
+
 #### Aside on D-Bus
 D-Bus means desktop bus, and its an inter-process communicaiton system (IPC) allowing 
 programs and services to communicate.
@@ -615,6 +628,53 @@ returns somethign like
          └─manager
 DBus lets processes expose mant objects each with their own path
 
+**KEY**
+This may LOOK like a directory tree, but thats just semantics.
+Everything there is just objects, but organized this way to make things easier.
+kind of like how you can have urls:
+https://example.com/api
+https://example.com/api/users
+https://example.com/api/posts
+but reperesent it as:
+/
+└── api
+    ├── users
+    └── posts
+
+OBJECT PATHS ARE JUST IDENTIFIERS, MADE THIS WAY FOR ORGANIZATIONAL PURPOSES
+THE /, /org, /org/freedesktop/, IS LIKELY JUST THERE FOR ORGANIZATIONAL PURPOSES,
+AND DO NOT CORRESPOND TO REAL OBJECTS.
+CAN CHECK VIA busctl introspect org.freedesktop.systemd1 /org
+
+gclocal@gclocal-MS-7E59:~$ busctl introspect org.freedesktop.systemd1 /org
+NAME                                TYPE      SIGNATURE RESULT/VALUE FLAGS
+org.freedesktop.DBus.Introspectable interface -         -            -    
+.Introspect                         method    -         s            -    
+org.freedesktop.DBus.Peer           interface -         -            -    
+.GetMachineId                       method    -         s            -    
+.Ping                               method    -         -            -    
+org.freedesktop.DBus.Properties     interface -         -            -    
+.Get                                method    ss        v            -    
+.GetAll                             method    s         a{sv}        -    
+.Set                                method    ssv       -            -    
+.PropertiesChanged                  signal    sa{sv}as  -            -    
+
+This shows that /org is indeed an object, and has methods like .Introspect, .Ping, and
+.Get and .Set, which are general D-Bus interfaces, not systemd specific.
+Systemd just chose to register objects at those paths, even though they dont expose
+any systemd functionality.
+
+Kind of like with a web server:
+for /api/users, can choose to make pages for /, /api, but not necessary
+
+Why do this?
+D-Bus specs define an interface called org.freedesktop.DBus.Introspectable,
+an object implementing it returns an XML describing itself and its immediate children
+by putting an introspectable object at /org, can recurse through it
+
+
+
+
 3. busctl introspect
 
 busctl introspect org.freedesktop.systemd1 /org/freedesktop/systemd1
@@ -634,6 +694,44 @@ ListUnits()
 
 PROPERTIES:
 SIGNALS:
+
+**NOTE**
+Notice the types of methods you can have:
+NAME                                TYPE      SIGNATURE RESULT/VALUE FLAGS
+org.freedesktop.DBus.Introspectable interface -         -            -    
+.Introspect                         method    -         s            -    
+org.freedesktop.DBus.Peer           interface -         -            -    
+.GetMachineId                       method    -         s            -    
+.Ping                               method    -         -            -    
+org.freedesktop.DBus.Properties     interface -         -            -    
+.Get                                method    ss        v            -    
+.GetAll                             method    s         a{sv}        -    
+.Set                                method    ssv       -            -    
+.PropertiesChanged                  signal    sa{sv}as  -            -  
+
+This is the class definition of an object.
+Says:
+1. What interfaces object implements
+2. What methods you can call
+3. What signals it emits, and 
+4. what properties it exposes
+
+Interfaces: like C++ class, such that everything that follows untill the next
+interface belongs to it. ALL METHODS ARE PART OF INTERFACES. Method calls are allways
+Service, Object, Interface, Method
+
+
+
+exe: interface org.freedesktop.DBus.Peer has methods .GetMachineId, and .Ping.
+leading . means it belonds to the interface.
+
+Can have INTERFACE, METHOD, PROPERTY, SIGNAL
+
+Signature is method signature, ss meaning 2 strings
+Return type is return type
+Flags is stuff like read only
+
+
 
 
 4. busctl call
@@ -674,6 +772,12 @@ busctl call org.freedesktop.systemd1 \
 /org/freedesktop/systemd1 \
 org.freedesktop.systemd1.Manager \
 ListUnits
+
+
+
+### Transactions
+
+
 
 
 
