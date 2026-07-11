@@ -73,18 +73,21 @@ are part of the service files, like ssh.service
 
 They are found in 2 primary locations:
 
-/usr/lib/systemd/system/
+1. /usr/lib/systemd/system/
 OR
-/lib/systemd/system/
+2. /lib/systemd/system/
 and custom services live in
-/etc/systemd/system/
+3. /etc/systemd/system/
 
 can view with
-systemctl cat nginx
+**systemctl** cat nginx
 OR
 find file via systemctl status nginx
 Loaded: loaded (/usr/lib/systemd/system/nginx.service; enabled)
 and then cat that file or view it however
+
+**NOTE** Due to Usr Merge, ITS THE SAME PLACE!!! there are now 2 places
+/usr/lib/systemd and /etc/systemd, depending on internal vs external software.
 
 
 
@@ -108,7 +111,8 @@ EnvironmentFile=-/etc/default/ssh # loads environment variables from here, - mea
 
 ExecStartPre=/usr/sbin/sshd -t # run this before starting, -t means test the configuration for syntax errors
 
-ExecStart=/usr/sbin/sshd -D $SSHD_OPTS # this is teh real command, -D means dont Daemonize. **NOTE** sshd normally forks itself into the backround, but systemd doesnt want that so it can supervise it
+ExecStart=/usr/sbin/sshd -D $SSHD_OPTS # this is teh real command, -D means dont Daemonize. **NOTE** sshd normally forks itself into the backround, but systemd doesnt want that so it can supervise it. Otherwise, it will start up, fork, parent process exits, and child process detaches from the terminal and continues running in the backround. (thats traditional Unix
+Daemon behavior) (read linux_intro.md for more on terminals and forking away and stuff)
 
 ExecReload=/usr/sbin/sshd -t # when someone runs systemctl reload ssh, first checks config
 
@@ -128,7 +132,7 @@ Important because every SSH login is a child process, so stopping the daemon doe
 Restart=on-failure #if crashes, restart it, but dont restart if intentionally stopped
 RestartPreventExitStatus=255 # one exception: if exit with status 255, dont restart it. 255 means fatar startup errors like config problem
 
-Type=notify # how systemd knows service is ready, types in clude
+Type=notify # how systemd knows service is ready, types include
 simple, forking, oneshot, notify, idle.
 notify means the service sends a message to systemd saying "im ready", untill then, systemd
 considers it "starting"
@@ -136,7 +140,7 @@ considers it "starting"
 
 
 
-RuntimeDirectory=sshd # creates /run/sshd before starting, which disappears on reboot.Useful for runtime files like sockets or PID-related state
+RuntimeDirectory=sshd # creates /run/sshd before starting, which disappears on reboot. Useful for runtime files like sockets or PID-related state
 
 
 RuntimeDirectoryMode=0755 # perms for runtime dir, 
@@ -153,7 +157,13 @@ this practically means "symlink this service file such that multi-user.target wa
 CREATES THIS SYMLINK ON ENABLE
 /etc/systemd/system/multi-user.target.wants/ssh.service
     -> /lib/systemd/system/ssh.service
+**NOTE** when you write systemctl status ssh or cat ssh, you see that it says
+triggered by ssh.socket, meaning it is socket activated. THus, it is not in the multi-user.target.wants or sockets.target.wants like you would expect.
 
+systemctl is-enabled ssh
+
+ANSWER: they are in /etc/systemd/system! reason the socket and service are both enabled is that
+this way it can claim port 22 and give it to the service later for ease.
 
 
 Alias=sshd.service # creates an alias for it, which may coincide with the actual name in some
@@ -296,7 +306,7 @@ Passes the already-open listening socket to sshd
 sshd begins handling SSH sessions
 
 **NOTE** generally, ssh is enabled the traditional way via systemctl enable ssh, not
-this other method.
+this other method. Nonetheless, it keeps the socket up so that it can pass the existing listening socket to the service later.
 
 
 ## TARGET FILE BREAKDOWN
@@ -490,12 +500,180 @@ busctl introspect org.freedesktop.systemd1 \
 
 **NOTE** Systemctl show gives only the JobId, but D-Bus via busctl you will see the full object path (LOOK INTO LATER)
 
+#### Aside on D-Bus
+D-Bus means desktop bus, and its an inter-process communicaiton system (IPC) allowing 
+programs and services to communicate.
+
+Instead of apps communicating through custom sockets or files, dbus provides standard message bus.
+exe:
+network manager tells apps that network connection changed
+power manager informs programs that battery is low
+service exposes methods that other programs can call
+
+**KEY** this way, clients dont need to know a PID, and can simply send messaged to a well
+known D-Bus name like org.example.MyService
+
+SYSTEM:
+1. Services publish interfaces
+2. Clients call methods or recieve signals
+3. The bus daemon routes the messages
+
+Relation to systemd:
+whereas we, the user, interact with systemd via systemctl, it also exposes its functionality
+over d-bus so processes can more easily communicate with it.
+
+EXE:
+when you systemctl start nginx
+systemctl doesnt manipulate services directly!
+instead, it sends a D-Bus request to systemd daemon (PID 1), asking it to start the service:
+systemctl
+      │
+      ▼
+    D-Bus
+      │
+      ▼
+systemd (PID 1)
+      │
+      ▼
+Starts nginx.service
+
+D-Bus Activation:
+instead of running all services all the time:
+1. service registers a D-Bus name
+2. The service is not running
+3. A client sends a message to that name
+4. D-Bus (often integrated with systemd) automatically starts that service
+5. message is delivered
+
+THis saves boot time.
+
+EXE2:
+suppose application want to reboot computer.
+Instead of running reboot, send D-Bus message like:
+
+Method:
+org.freedesktop.login1.Manager.Reboot()
+
+D-Bus activated Services:
+[Service]
+Type=dbus #tells systemd to wait untill the service acquires the specific D-Bus name
+**NOTE** thus, it isnt just waiting for process to start, but for it to reguster a unique
+name of the D-Bus before it can consider the service started. 
 
 
 
+BusName=org.example.MyService #registers the D-Bus name the service must own
+ExecStart=/usr/bin/myservice # Once that name appears, systemd considers teh service started 
+
+**NOTE 2**
+Notice, the D-Bus names look like URLs!
+Thats because they reverse DNS names, made this way to guarentee global uniqueness!
+EXE:
+imagine if every dev could name their service "Settings" on the D-Bus, that would be a pain!
+Instead, everybody uses a name based on a domain they own
+freedesktop.org is org.freedesktop.*, etc (hense the reverse part)
+(same convection for java package names com.google.common, org.apache.http)
+That being said, every D-Bus connection gets a unique name automatically
+exe:
+:1.4
+:1.27, assigned by D-Bus daemon
+
+A process can then request a well-known name RequestName("")
+That being said, it isnt enforced by some online DNS, just the local D-Bus daemon.
+Processes use teh well known name, not the random assigned one, which is just for D-Bus internals.
+
+##### D-Bus Commands
+Structure is:
+Bus name: who you are talking to
+Object path: which object inside that service
+Interface: what API that object exposes
+
+Service (bus name)
+    ↓
+Object
+    ↓
+Interface
+    ↓
+Method
 
 
+1. List bus names for all processes:
+busctl list 
 
+2. 
+// Tells you what objects does this service expose
+busctl tree org.freedesktop.systemd1
+
+returns somethign like
+
+/
+└─/org
+   └─/org/freedesktop
+      └─/org/freedesktop/systemd1
+         ├─unit
+         ├─job
+         └─manager
+DBus lets processes expose mant objects each with their own path
+
+3. busctl introspect
+
+busctl introspect org.freedesktop.systemd1 /org/freedesktop/systemd1
+
+This means "tell me everyting about this object"
+could respond with somethgin like:
+
+INTERFACE
+org.freedesktop.systemd1.Manager
+
+METHODS:
+StartUnit()
+StopUnit()
+RestartUnit()
+Reload()
+ListUnits()
+
+PROPERTIES:
+SIGNALS:
+
+
+4. busctl call
+busctl call \
+org.freedesktop.systemd1 \
+/org/freedesktop/systemd1 \
+org.freedesktop.systemd1.Manager \
+ListUnits
+
+means:
+"Call the ListUnits method on the org.freedesktop.systemd1.Manager interface of the object at
+/org/freedesktop/systemd1 owned by the service org.freedesktop.systemd1
+
+Argument	                            Meaning
+org.freedesktop.systemd1	            Which service (bus name)
+/org/freedesktop/systemd1	            Which object
+org.freedesktop.systemd1.Manager	    Which interface
+ListUnits	                            Which method
+
+Analogous to:
+
+HTTP	            D-Bus
+Server	            Bus name
+URL path	        Object path
+API namespace	    Interface
+Endpoint/function	Method
+
+
+Inspect systemd service:
+busctl tree org.freedesktop.systemd1
+
+View available methods:
+busctl introspect org.freedesktop.systemd1 \
+/org/freedesktop/systemd1
+
+Call a method:
+busctl call org.freedesktop.systemd1 \
+/org/freedesktop/systemd1 \
+org.freedesktop.systemd1.Manager \
+ListUnits
 
 
 
