@@ -512,290 +512,633 @@ systemctl start sshd.service
 KEY IDEA: when you start a service, it does not do it right away, instead it just 
 creates the job object for what you want to do.
 
-
-#### Aside on D-Bus
-D-Bus means desktop bus, and its an inter-process communicaiton system (IPC) allowing 
-programs and services to communicate.
-
-Instead of apps communicating through custom sockets or files, dbus provides standard message bus.
-exe:
-network manager tells apps that network connection changed
-power manager informs programs that battery is low
-service exposes methods that other programs can call
-
-**KEY** this way, clients dont need to know a PID, and can simply send messaged to a well
-known D-Bus name like org.example.MyService
-
-SYSTEM:
-1. Services publish interfaces
-2. Clients call methods or recieve signals
-3. The bus daemon routes the messages
-
-Relation to systemd:
-whereas we, the user, interact with systemd via systemctl, it also exposes its functionality
-over d-bus so processes can more easily communicate with it.
-
-EXE:
-when you systemctl start nginx
-systemctl doesnt manipulate services directly!
-instead, it sends a D-Bus request to systemd daemon (PID 1), asking it to start the service:
-systemctl
-      │
-      ▼
-    D-Bus
-      │
-      ▼
-systemd (PID 1)
-      │
-      ▼
-Starts nginx.service
-
-D-Bus Activation:
-instead of running all services all the time:
-1. service registers a D-Bus name
-2. The service is not running
-3. A client sends a message to that name
-4. D-Bus (often integrated with systemd) automatically starts that service
-5. message is delivered
-
-THis saves boot time.
-
-EXE2:
-suppose application want to reboot computer.
-Instead of running reboot, send D-Bus message like:
-
-Method:
-org.freedesktop.login1.Manager.Reboot()
-
-D-Bus activated Services:
-[Service]
-Type=dbus #tells systemd to wait untill the service acquires the specific D-Bus name
-**NOTE** thus, it isnt just waiting for process to start, but for it to reguster a unique
-name of the D-Bus before it can consider the service started. 
-
-
-
-BusName=org.example.MyService #registers the D-Bus name the service must own
-ExecStart=/usr/bin/myservice # Once that name appears, systemd considers teh service started 
-
-**NOTE 2**
-Notice, the D-Bus names look like URLs!
-Thats because they reverse DNS names, made this way to guarentee global uniqueness!
-EXE:
-imagine if every dev could name their service "Settings" on the D-Bus, that would be a pain!
-Instead, everybody uses a name based on a domain they own
-freedesktop.org is org.freedesktop.*, etc (hense the reverse part)
-(same convection for java package names com.google.common, org.apache.http)
-That being said, every D-Bus connection gets a unique name automatically
-exe:
-:1.4
-:1.27, assigned by D-Bus daemon
-
-A process can then request a well-known name RequestName("")
-That being said, it isnt enforced by some online DNS, just the local D-Bus daemon.
-Processes use teh well known name, not the random assigned one, which is just for D-Bus internals.
-
-##### D-Bus Commands
-Structure is:
-Bus name: who you are talking to
-Object path: which object inside that service
-Interface: what API that object exposes
-
-Service (bus name)
-    ↓
-Object
-    ↓
-Interface
-    ↓
-Method
-
-
-1. List bus names for all processes:
-busctl list 
-
-2. 
-// Tells you what objects does this service expose
-busctl tree org.freedesktop.systemd1
-
-returns somethign like
-
-/
-└─/org
-   └─/org/freedesktop
-      └─/org/freedesktop/systemd1
-         ├─unit
-         ├─job
-         └─manager
-DBus lets processes expose mant objects each with their own path
-
-**KEY**
-This may LOOK like a directory tree, but thats just semantics.
-Everything there is just objects, but organized this way to make things easier.
-kind of like how you can have urls:
-https://example.com/api
-https://example.com/api/users
-https://example.com/api/posts
-but reperesent it as:
-/
-└── api
-    ├── users
-    └── posts
-
-OBJECT PATHS ARE JUST IDENTIFIERS, MADE THIS WAY FOR ORGANIZATIONAL PURPOSES
-THE /, /org, /org/freedesktop/, IS LIKELY JUST THERE FOR ORGANIZATIONAL PURPOSES,
-AND DO NOT CORRESPOND TO REAL OBJECTS.
-CAN CHECK VIA busctl introspect org.freedesktop.systemd1 /org
-
-gclocal@gclocal-MS-7E59:~$ busctl introspect org.freedesktop.systemd1 /org
-NAME                                TYPE      SIGNATURE RESULT/VALUE FLAGS
-org.freedesktop.DBus.Introspectable interface -         -            -    
-.Introspect                         method    -         s            -    
-org.freedesktop.DBus.Peer           interface -         -            -    
-.GetMachineId                       method    -         s            -    
-.Ping                               method    -         -            -    
-org.freedesktop.DBus.Properties     interface -         -            -    
-.Get                                method    ss        v            -    
-.GetAll                             method    s         a{sv}        -    
-.Set                                method    ssv       -            -    
-.PropertiesChanged                  signal    sa{sv}as  -            -    
-
-This shows that /org is indeed an object, and has methods like .Introspect, .Ping, and
-.Get and .Set, which are general D-Bus interfaces, not systemd specific.
-Systemd just chose to register objects at those paths, even though they dont expose
-any systemd functionality.
-
-Kind of like with a web server:
-for /api/users, can choose to make pages for /, /api, but not necessary
-
-Why do this?
-D-Bus specs define an interface called org.freedesktop.DBus.Introspectable,
-an object implementing it returns an XML describing itself and its immediate children
-by putting an introspectable object at /org, can recurse through it
-
-
-
-
-3. busctl introspect
-
-busctl introspect org.freedesktop.systemd1 /org/freedesktop/systemd1
-
-This means "tell me everyting about this object"
-could respond with somethgin like:
-
-INTERFACE
-org.freedesktop.systemd1.Manager
-
-METHODS:
-StartUnit()
-StopUnit()
-RestartUnit()
-Reload()
-ListUnits()
-
-PROPERTIES:
-SIGNALS:
-
-**NOTE**
-Notice the types of methods you can have:
-NAME                                TYPE      SIGNATURE RESULT/VALUE FLAGS
-org.freedesktop.DBus.Introspectable interface -         -            -    
-.Introspect                         method    -         s            -    
-org.freedesktop.DBus.Peer           interface -         -            -    
-.GetMachineId                       method    -         s            -    
-.Ping                               method    -         -            -    
-org.freedesktop.DBus.Properties     interface -         -            -    
-.Get                                method    ss        v            -    
-.GetAll                             method    s         a{sv}        -    
-.Set                                method    ssv       -            -    
-.PropertiesChanged                  signal    sa{sv}as  -            -  
-
-This is the class definition of an object.
-Says:
-1. What interfaces object implements
-2. What methods you can call
-3. What signals it emits, and 
-4. what properties it exposes
-
-Interfaces: like C++ class, such that everything that follows untill the next
-interface belongs to it. ALL METHODS ARE PART OF INTERFACES. Method calls are allways
-Service, Object, Interface, Method
-
-
-
-exe: interface org.freedesktop.DBus.Peer has methods .GetMachineId, and .Ping.
-leading . means it belonds to the interface.
-
-Can have INTERFACE, METHOD, PROPERTY, SIGNAL
-
-Signature is method signature, ss meaning 2 strings
-Return type is return type
-Flags is stuff like read only
-
-
-
-
-4. busctl call
-busctl call \
-org.freedesktop.systemd1 \
-/org/freedesktop/systemd1 \
-org.freedesktop.systemd1.Manager \
-ListUnits
-
-means:
-"Call the ListUnits method on the org.freedesktop.systemd1.Manager interface of the object at
-/org/freedesktop/systemd1 owned by the service org.freedesktop.systemd1
-
-Argument	                            Meaning
-org.freedesktop.systemd1	            Which service (bus name)
-/org/freedesktop/systemd1	            Which object
-org.freedesktop.systemd1.Manager	    Which interface
-ListUnits	                            Which method
-
-Analogous to:
-
-HTTP	            D-Bus
-Server	            Bus name
-URL path	        Object path
-API namespace	    Interface
-Endpoint/function	Method
-
-
-Inspect systemd service:
-busctl tree org.freedesktop.systemd1
-
-View available methods:
-busctl introspect org.freedesktop.systemd1 \
-/org/freedesktop/systemd1
-
-Call a method:
-busctl call org.freedesktop.systemd1 \
-/org/freedesktop/systemd1 \
-org.freedesktop.systemd1.Manager \
-ListUnits
-
+READ DBUS LEARN FOR MORE INFO
 
 
 ### Transactions
 
+A **transaction** is a temporary set of jobs systemd builds before committing them to 
+the real job queue
+
+exe:
+suppose you run
+
+systemctl start myapp.service
+
+which contains:
+[Unit]
+Requires=postgresql.service
+Wants=redis.service
+After=postgresql.service redis.service
+
+1. From here, systemd starts with an initial requested job:
+
+START myapp.service,
+
+2. Then, it expands Dependencies
+myapp Requires postgresql -> add START postgresql.service
+myapp Wants redis         -> add START redis.service
+
+**NOTE** this expansion is infinitely recursive. IE EVERY DEPENDENCY OF THE DEPENDENCIES IS
+CONTAINED, SO LITERALLY EVERY SINGLE UNIT THAT MUST BE STARTED BEFORE IS INCLUDED IN THE
+TRANSACTION.
+
+3. Then it adds ordering edges
+postgresql.service START must finish before myapp.service START begins
+redis.service START must finish before myapp.service START begins
+
+4. Creates the full temporary transaction
+
+Jobs:
+    J1 = START myapp.service
+    J2 = START postgresql.service
+    J3 = START redis.service
+
+Requirement edges:
+    myapp.service requires postgresql.service
+    myapp.service wants redis.service
+
+Ordering edges:
+    postgresql.service -> myapp.service
+    redis.service      -> myapp.service
+
+Or in graph form:
+START postgresql.service ─┐
+                          ├── must complete before ──▶ START myapp.service
+START redis.service ──────┘
+
+**KEY**
+Requires and Wants decide what jobs are in the transaction
+(They are the unit dependency edges causing other jobs to be pulled in)
+(WANTS IS JUST LESS STRONG THAN REQUIRES, IN THAT WILL STILL START WITHOUT IT ON THE EVENT
+THAT IT FAILS. REQUIRES FORCES IT TO BE STARTED FIRST, AND IF THE DEPENDENCY STOPS SO TOO DOES THE SERVICE) BindsTo is even stronger, as it also ties lifetime.
+
+After and Before decide ordering among jobs already in the transaction
+(They decide the ordering edges that constrain when jobs may be run, but only matter
+if both relevant jobs exist)
+(can be redundant, ie one service's before is that services after, but this is when you 
+cannot edit the other service, for isolation)
 
 
 
 
 
 
+### Transaction Builds
+Model:
+
+manager_start_unit(unit, mode):
+    create empty transaction T
+    add_job(T, START, unit, required=true)
+
+    recursively expand requirement dependencies:
+        if START A and A Requires B:
+            add START B as required
+        if START A and A Wants B:
+            add START B as wanted/optional
+        if START A and A Requisite B:
+            require B to already be active; do not start it
+        if START A and A Conflicts B:
+            add STOP B
+
+    add ordering constraints:
+        if A After B and both A and B have jobs:
+            job(B) must run before job(A)
+        if A Before B and both A and B have jobs:
+            job(A) must run before job(B)
+
+    merge with existing queued jobs #THE ACTUAL JOB QUEUE
+    detect conflicts
+    detect ordering cycles
+    drop optional jobs if needed to make transaction valid
+    fail transaction if required jobs cannot be reconciled
+    commit transaction into real job queue
+
+exe:
+Current job queue:
+
+START sshd
+START nginx
+STOP cups
+
+You run systemctl restart nginx
+
+It then creates a new transaction in memory:
+STOP nginx
+START nginx
+
+However, it doesn't just append these to the queue, it tries to merge them correctly.
+It might replace the old job, merge into one, cancel one, reject the new transaction, etc
+
+This is why systemd can start many things at once:
+it keeps asking: which jobs have no unmet ordering pre-requisites, and those jobs are runnable
+
+exe:
+A.service
+B.service
+C.service After=A.service
+D.service After=A.service
+
+Transaction:
+START A
+START B
+START C
+START D
+
+Ordering:
+A -> C
+A -> D
+
+Execution:
+time 0: start A and B in parallel
+time 1: A finishes starting
+time 2: start C and D in parallel
+
+
+### After= low level
+[Unit]
+After=network.target
+
+This creates an ordering edge stored on the unit object.
+"this unit is ordered after network.target"
+
+**KEY**
+No job is pulled from this, so if it only says after=network.target, but no
+Requires, BindTo, or Wants, then transaction contains only
+START myapp.service
+
+Exe:
+
+A wants B, B requires C.
+If C doesnt work, then B exlcuded, but A succeeds (Unsure)
+
+If C fails, then B which requires C and after will fail, then A waits for B to start bc after
+but on B fail, A is allowed to start
+
+### Finished Starting
+
+The KEY is that it is unit-type specific
+
+When systemd says A must start AFTER B, means A's job cannot begin untill after
+B's job is considered complete, however what that means depends on teh unit's type
+
+For a target:
+target start job is complete when the target itself becomes active
+
+For a socket:
+complete when systemd created/listened on the socket
+
+For a .mount:
+complete when mount operation is done
+
+For a service:
+depends on type
+type=simple means started immediately after it forks the service process, even before 
+execve is envoked
+
+type=exec means after execve succeeds
+
+type=oneshot means waist untill the main process exist(IE whatever ExecStart runs, waits 
+for exit status 0)
+
+type=notify means service sends signal READY=1, send via the sd_notify() API from libsystemd
+sd_notify(0, "READY=1");
+Trick is that when systemd sees type=notify, it creates a notify socket (Unix Datagram Socket)
+and exports its address via the environment
+
+NOTIFY_SOCKET=/run/systemd/notify
+NOTIFY_SOCKET=@/org/freedesktop/systemd1/notify //alternative, via an abstract socket
+
+And process inherits it via execve()
+argv = ...
+envp = {
+    ...
+    NOTIFY_SOCKET=/run/systemd/notify
+}
+
+And internally, sd_notify() creates its own socket
+int fd = socket(AF_UNIX, SOCK_DGRAM | SOCK_CLOEXEC, 0);
+
+lastly it sends 1 datagram:
+READY=1
+STATUS=Listening on port 8080
+MAINPID=12345
+via sendmsg() and sendto()
+
+### Wants low level
+[Unit]
+Wants=redis.service
+
+Adds a requirement-type dependency edge
+
+A wants B.
+
+This way, when a start job for A is added to a transaction, a start job for B is also
+tried to be added.
+
+But, wants is weak, so if it fails, it doesnt fail the whole transaction
+
+Also, without any order specified, starts both simultaneously (ie both runnable)
+so good to order
+
+[Unit]
+Wants=redis.service
+After=redis.service
+MEANS:
+Pull redis into the transaction.
+If redis is being started, start me after redis.
+But if redis fails, I may still start.
+
+### Requires low level
+Also pulls job, but is stronger
+[Unit]
+Requires=postgresql.service
+
+Transaction:
+START myapp.service
+START postgresql.service
+
+KEY:
+If myapp.service is activated,
+postgresql.service is also activated.
+
+If postgresql.service is explicitly stopped/restarted,
+myapp.service is also stopped/restarted.
+
+If postgresql.service fails to activate, and myapp.service has After=postgresql.service,
+then myapp.service will not be started.
+
+### Before low level
+Just like After, but it says that this unit must be started before
+other units
+Again, it does not pull units into the transaction, just defined ordering edges.
+
+NOTE:
+normally, you do not write 
+Before=mutli-user.target, 
+instead use WantedBy=multi-user.target, which creates a symlink for the service
+and puts it in multi-user.target.wants directory, either in /etc or /usr/lib
+
+**SPECIAL BEHAVIOR**
+target units automatically complement their Wants= and Requires= with 
+After=, unless DefaultDependencies=no is set
+
+This means that the service is normally started before the target is considered reached, not 
+after or at the same time.
 
 
 
+[Install]
+WantedBy=multi-user.target
 
-Before, After, Requires, RequiredBy, Wants, WantedBy, etc...
+does not mean "Star this after multi-user.target"
+but rather it means: 
+"When mutli-user.target is the goal, pull this service into that target's transaction
 
-**KEY MODEL** Units, Jobs, and Transactions
+### WantedBy low level
+WantedBy is not runtime dependency!
 
-Systemd does not boot by reading files top-down like a shell, instead, it uses a graph of units
+[Install]
+WantedBy=multi-user.target
 
-a **UNIT** can be a service, socket, target, mount, timer, device, and so on
-a **UNIT FILE** is an INI-style that describes those unit objects, .service, .socket, .target are such files
+is used by: systemctl enable my.service, not my normal transaction execution!
+**NOTE** enabling vs disabling means it just creates this symlink, which dictates the
+.wants/ of the listed unity to the current unit.
 
+When you enable the unit, systemd creates a symlink like:
+/etc/systemd/system/multi-user.target.wants/my.service
+    -> /usr/lib/systemd/system/my.service
+
+EFFECTIVELY, WHEN ENABLED, SYSTEMD SEES:
+multi-user.target Wants=my.service
+
+WHY DO THIS: because it lets you add it on later without editing the 
+multi-user.target file.
+WantedBy and RequiredBy work the same way, lets you create Wants and Requires depencencies
+for units you cannot actively control / are already active
+
+
+### RequiredBy low level
+This is the same as WantedBy, but stronger
+
+[Install]
+RequiredBy=some.target
+
+means
+
+When enabled, create:
+some.target.requires/my.service
+
+WantedBy creates a .wants/ symlink, and RequiredBy creates a .requires/ symlink
+
+**KEY** but AGAIN this isnt a runtime thing, so it doesnt enforce it when you start
+this program that those are started at all. when enabled, it just adds it to teh wants of the other, but if its already running, no difference
+
+### All Options
+
+After/Before: Determines ordering in a transaction, does not pull jobs into a transaction.
+Runtime property. Ordering edges
+
+Wants/Requires: Determines the dependency/requirement edges in a transaction. Does not determine order. Wants means can work without, Requires means cannot work without
+
+WantedBy/RequiredBy: used to affect the Wants/Requires of other units without editing their
+files. Both will symlink the primary unit to the specified unit's .wants/ and .requires/
+directories respectively. Not a runtime property, only done when enabling and disabling units
+(enable = create symlink, disable = remove) enabling = effectively writing
+Wants=my.service in the specified unit, disabling means removing that.
+Key functionality: when used with a target, implied After= for all units unless DefaultDependency=no.
+
+
+### Boot as a transaction
+
+At boot, systemd activates 
+default.target, which usually
+
+default.target -> graphical.target
+or default.target -> multi-user.target
+
+default.target:
+[Unit]
+Description=Graphical Interface
+Documentation=man:systemd.special(7)
+Requires=multi-user.target #implied after
+Wants=display-manager.service #implied after
+Conflicts=rescue.service rescue.target #MEANS THESE UNITS CANNOT BE ACTIVE TOGETHER
+After=multi-user.target rescue.service rescue.target display-manager.service
+AllowIsolate=yes
+
+(THIS IS A SYMLINK TO graphical.target)
+
+
+Thus, on Boot:
+
+1. Systemd starts with
+
+START default.target (initial job)
+
+2. It builds the transaction for the job before queueing it
+Then, it reads its dependencies recursively and constructs the graph,
+looking at its depencency symlinks ,creating effective dependencies
+
+Then it recursively expands
+START multi-user.target
+START sshd.service
+START cron.service
+START networking.service
+...
+
+The real boot becomes a large graph:
+systemd starts default.target
+
+default.target
+  -> multi-user.target
+      -> sshd.service
+      -> cron.service
+      -> NetworkManager.service
+      -> getty.target
+          -> getty@tty1.service
+      -> basic.target
+          -> sockets.target
+          -> timers.target
+          -> paths.target
+          -> sysinit.target
+
+**NOTE** can view with 
+systemctl list-dependencies --all default.target
+and boot transaction jobs
+systemctl list-jobs
+
+exe:
+
+multi-user.target
+wants myapp.service and sshd.service
+
+myapp.service
+reqs postgresql.service
+wants redis.service
+after both
+notify
+
+postgresql.service
+type notify
+
+redis.service
+type=simple
+
+1. systemd creates job START default.target
+
+2. Expansion, looks at Wants, Requires, and its .wants and .requires
+multi-user.target Wants=myapp.service
+    -> add START myapp.service
+
+multi-user.target Wants=sshd.service
+    -> add START sshd.service
+
+myapp.service Requires=postgresql.service
+    -> add START postgresql.service as required
+
+myapp.service Wants=redis.service
+    -> add START redis.service as optional
+
+
+3. Ordering
+myapp After=postgresql
+    -> START postgresql before START myapp
+
+myapp After=redis
+    -> START redis before START myapp
+
+target default dependency:
+multi-user.target Wants=myapp
+    -> START myapp before START multi-user.target
+
+target default dependency:
+multi-user.target Wants=sshd
+    -> START sshd before START multi-user.target
+
+4. Assemble job queues
+Jobs:
+START postgresql.service
+START redis.service
+START myapp.service
+START sshd.service
+START multi-user.target
+ordering:
+postgresql.service -> myapp.service
+redis.service      -> myapp.service
+myapp.service      -> multi-user.target
+sshd.service       -> multi-user.target
+
+5. Make final job queue
+time 0:
+    start postgresql.service
+    start redis.service
+    start sshd.service
+
+time 1:
+    redis.service Type=simple: considered started after fork
+    sshd.service considered started according to its unit Type=
+
+time 2:
+    postgresql.service Type=notify sends READY=1
+    postgresql start job completes
+
+time 3:
+    start myapp.service
+
+time 4:
+    myapp.service Type=notify sends READY=1
+    myapp start job completes
+
+time 5:
+    multi-user.target becomes active
+
+### Conflicts
+
+[Unit]
+Conflicts=rescue.target
+
+means this unit and rescue.target should not be active together.
+If systemd starts one, it schedules a stop job for the other
+
+**KEY** again however, doesn't speficy ordering, just that a stop job must be scheduled
+Need Before= or After= to force it to stop it before starting this one
+
+[Unit]
+Conflicts=old.service
+After=old.service
+
+### Shutdown:
+
+if startup order is 
+postgresql.service -> myapp.service
+because
+myapp.service After=postgresql.service
+
+Then shutdown order is
+stop myapp.service first
+stop postgresql.service second
+
+### Sockets
+Sockets used for event-driven jobs
+exe:
+myapp.socket
+[Socket]
+ListenStream=8080
+
+[Install]
+WantedBy=sockets.target
+
+This means sockets.target wants myapp.socket, and After= is implied,
+Thus, at boot:
+sockets.target wants myapp.socket
+systemd starts myapp.socket
+systemd opens/listens on port 8080
+
+NO MYAPP.SERVICE RUNNING YET
+
+LATER:
+client connects to port 8080
+kernel queues connection
+systemd sees activity on myapp.socket
+systemd enqueues START myapp.service
+
+### Default dependencies
+if you write a simple service file:
+
+[Service]
+ExecStart=/usr/local/bin/foo
+
+Systemd automatically adds:
+After=basic.target
+Conflicts=shutdown.target
+
+depending on your unit type
+
+Implicit Dependencies: allways added depending on your unit type/config
+Default Dependencies: added unless DefaultDependencies=no
+
+**FOR TARGETS, A CRUTIAL DEFAULT DEPENDENCY IS**
+If target T Wants=A or Requires=A,
+then target T is automatically ordered After=A,
+unless disabled/overridden.
+
+### systemctl enable vs systemctl start
+
+systemctl start my.service meahs
+
+Ask PID 1 to create a START job now (via the D-Bus Start-Unit, which adds it to staging
+area aka the transaction and then once dependencies expanded, then adds jobs to queue)
+
+systemctl enable my.service means
+"modify filesystem symlinks so this unit is pulled into future transactions, according
+to its WantedBy and RequiredBy
+
+
+### Whole SystemD model in one precise picture:
+PID 1 systemd manager
+│
+├── Unit objects
+│     ├── sshd.service
+│     │     ├── current state: active/running
+│     │     ├── dependencies: After=network.target, WantedBy=multi-user.target, ...
+│     │     └── type-specific config: ExecStart=..., Restart=...
+│     │
+│     ├── multi-user.target
+│     │     ├── current state: active
+│     │     └── dependencies: Wants=sshd.service, Wants=cron.service, ...
+│     │
+│     └── dbus.socket
+│           ├── current state: active/listening
+│           └── triggers dbus.service
+│
+├── Job queue
+│     ├── START postgresql.service
+│     ├── START redis.service
+│     ├── START myapp.service
+│     └── START multi-user.target
+│
+└── Transaction builder
+      ├── expands Wants=/Requires=/Conflicts=
+      ├── applies Before=/After=
+      ├── checks conflicts/cycles
+      ├── merges with existing jobs
+      └── commits runnable jobs
+
+
+Init Order defined by graph:
+
+Requirement dependencies:
+    decide which jobs are included.
+
+Ordering dependencies:
+    decide which included jobs must wait for which other included jobs.
+
+Unit type readiness:
+    decides when a job counts as complete.
+
+Targets:
+    provide named milestones and grouping.
+
+Enablement symlinks:
+    decide what gets pulled into boot goals.
+
+Activation mechanisms:
+    sockets, devices, timers, paths, D-Bus, etc. can add jobs later.
+
+Final Version:
+Systemd boot is not a script.
+It is repeated graph solving.
+
+1. Pick goal unit, usually default.target.
+2. Load that unit and recursively load units it depends on.
+3. Convert desired state changes into jobs.
+4. Expand requirement dependencies into more jobs.
+5. Apply ordering dependencies between those jobs.
+6. Validate/merge the transaction.
+7. Run every job whose ordering prerequisites are satisfied.
+8. As jobs complete, unlock more jobs.
+9. During runtime, new events can enqueue new jobs.
 
 
 
