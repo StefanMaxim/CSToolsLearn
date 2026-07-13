@@ -68,3 +68,7 @@ permissions
 device number (THIS IS KEY)
 
 dev_t rdev = MKDEV(8,1)
+
+
+
+# Filesystem from Scratch:

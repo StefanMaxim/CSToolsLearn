@@ -440,16 +440,18 @@ After=...
 ExecStart=...
 Restart=...
 
+**NOTE** Load just means take from disk, and make a memory object, not START or ENABLE
+
 systemctl list-units only lists ones referenced directly or indirectly in teh dependency graph, not all on disk
 
 ### Unit States
 
 Every unit has a current state, exe:
 
-inactive
-activating
-active
-deactivating
+inactive #currently stopped
+activating #in the process of starting
+active #currently started
+deactivating #in the process of starting
 failed
 
 The High-Level state is called **ACTIVE** and the more precise type-specific state is called **SUB**
@@ -488,7 +490,7 @@ struct Job {
 If a unit contains a currently scheduled or executing job, the property contains it jobID and job object path, 
 else the job ID is 0.
 
-systemctl show ssh.service -p Job
+**systemctl show ssh.service -p Job**
 
 systemctl show ssh.service -p Job --value
 then 
@@ -675,6 +677,9 @@ If C doesnt work, then B exlcuded, but A succeeds (Unsure)
 If C fails, then B which requires C and after will fail, then A waits for B to start bc after
 but on B fail, A is allowed to start
 
+**KEY** AFter also determines ordering during transaction merges, which happen to create the
+final job queue
+
 ### Finished Starting
 
 The KEY is that it is unit-type specific
@@ -836,7 +841,7 @@ this program that those are started at all. when enabled, it just adds it to teh
 
 ### All Options
 
-After/Before: Determines ordering in a transaction, does not pull jobs into a transaction.
+After/Before: Determines ordering in a transaction and during transaction merges. Does not pull jobs into a transaction.
 Runtime property. Ordering edges
 
 Wants/Requires: Determines the dependency/requirement edges in a transaction. Does not determine order. Wants means can work without, Requires means cannot work without
@@ -1207,7 +1212,8 @@ so the absolute minimum is:
 1: kernel (non-negotiable)
 manages memory, CPU, devices
 provides system calls (fork exec, etc)
-is the ONLY THING that can actually create processes
+is the ONLY THING that can actually create processes (AVAILABLE IN GLIBC, with headers
+unistd, fcnctl, etc)
 (without it, nothing runs)
 
 2: The first process (PID 1)
@@ -1251,10 +1257,10 @@ thus, PID1 must clean up orphaned processes for the entire system
 
 Note: you can do just kernel, and make PID1 be /bin/sh.
 so the kernel is running, and the shell is PID1 (valid)
-however, noting else happens unless you do it
+however, nothing else happens unless you do it
 
 cannot just make anything PID 1, like /bin/git or something
-then, kernel runs process, it terminales, returns exit status, but that goes to kernel, so its done
+then, kernel runs process, it terminales, returns exit status, but that goes to kernel, so its done(will kernel panick without any task in PID1)
 
 
 
@@ -1274,7 +1280,7 @@ processes are created using:
 fork() -> duplicate process
 **KEY** modern kernels use copy-on-write, meaning the forked process shares the same underlying memory pages untill a 
 write occurs, because its usually not worth copying over all of that process's memory bc its often followed by execve
-which deletes it all anyways
+which deletes it all anyways.
 
 exec() -> replaces the processes's memory (all of it) with the new layout as specified in the executable
 **KEY** it does NOT replace the entire process, only that process's userspace! the kernel space of that process
@@ -1290,7 +1296,7 @@ When a process finishes, it doesn't disappear instantly.
 Instead:
 1. it stops running
 2. The kernel keeps a tiny record of
-    - exit status (success/failure)
+    - exit status (success/failure) (0 is success, 1 is failure)
     - some accounting info
 leftover process is called a Zombie Process
 
@@ -1302,11 +1308,15 @@ because parent might want to know:
 thus, kernel waits untill parent says:
 okay, ive read the result, you can fully remove it
 
+**KEY**
 (done via wait() and waitpid())
 
 Running -> Exits -> Zombie -> Reaped -> Gone
 
 Zombie is not running, or using CPU, just an entry in teh process table.
+**NOTE** Zombie process's do not keep its RAM allocation (code, heap, stack, etc got freed)
+but it does occupy kernel bookkeeping like its PID, exit status, and resource usage stats
+PROCESS BECOMES A ZOMBIE VIA exit(status) syscall
 
 **PROBLEM**
 what if parent never calls wait()?
@@ -1339,6 +1349,14 @@ clean up zombies
 manage entire process groups
 
 
+FULL PROCESS LIFECYLE:
+
+1: process calls exit(status) or return from main() (which effectively calls exit())
+2: kernel frees process's userspace resources, and marks as zombie
+3: parent process is notified via SIGCHLD
+4: parent calls wait() waitpid() or related function
+5: kernel returns the exist status to the parent and removes the zombie from process table
+
 ## Full example:
 
 full chain from boot -> systemd -> python script walkthrough
@@ -1356,9 +1374,12 @@ UEFI loads an EFI executable from the EFI System Partition
 
 Bootloader loads:
 /boot/vmlinuz (compressed linux kernel) into memory
-initramfs (initial RAM filesystem)
-passes kernel commands (root=, quiet, etc)
-kernel command line (eg init=/usr/lib/systemd/systemd)
+
+initramfs (initial RAM filesystem) into memory(DOES NOT RUN, JUST LOADS)
+
+passes kernel commands (root=, quiet, etc, and location of initramfs)
+kernel command line (eg init=/usr/lib/systemd/systemd) prepared by the bootloader, and passed
+to the kernel.
 then bootloader jumps into kernel entry point (handing over control to the kernel)
 
 
@@ -1369,16 +1390,25 @@ no user processes exist
 no scheduler is initialized
 memory manager is up
 
-Now, kernel:
+Now, kernel initializes enough of itself:
 sets up memory management, scheduler, interrupts
-detects hardware and loads built-in drivers
+detects hardware and loads built-in drivers for CPU, RAM, etc
 
 CRUTIALLY:
-mounts initramfs as a temporary root (initramfs is loaded first by the bootloader, but the kernel runs it itself
+kernel mounts initramfs as a temporary root (initramfs is loaded first by the bootloader, but the kernel runs it itself
 as a temp filesystem)
 prepares for first userspace execution
 (NOT a process yet, just mounts it as a temporary place)
 then, it executed /init from the initramfs
+**KEY** MORE CLEARLY, IT DECOMPRESSES THE ARCHIVE FILE INITRAMFS INTO AN IN-MEMORY FILESYSTEM
+AND THIS FILESYSTEM BECOMES THE KERNEL'S TEMPORARY ROOT FILESYSTEM
+/
+├── init
+├── bin
+├── sbin
+├── lib
+└── ...
+
 
 What is initramfs?
 it is tiny, temporary userspace whose job is to prepare the REAL root filesystem
@@ -1392,7 +1422,9 @@ discovers hardware needed to acces root filesystem
 decrypts disks (if using LUKS)
 assemble RAID or LVM volumes (storage)
 Mounts the REAL root filesystem (/dev/sda2) (MOUNTING = MAKE CONTENTS OF STORAGE DEVICE ACCESSIBLE VIA PATH, RELATIVE TO ROOT)
-Aside on mounting:
+
+
+**Aside on mounting**:
 wait, isnt /dev/sda a mount already?
 NO: is it not a filesystem, but just raw access to a disk partition.
 

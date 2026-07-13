@@ -643,7 +643,7 @@ a argument.
 
 ### Pipes and Redirects (WIP)
 
-Pipes "|" connects teh standard output of the command on the left to the standard input of the command on the right.
+Pipes "|" connects the standard output of the command on the left to the standard input of the command on the right.
 
 **KEY**
 stdin, stdout, and stderr are just file descriptors, defaulting to 
@@ -717,11 +717,11 @@ Virtual address space of Process A
 |                            |
 | kernel code                |
 | kernel data structures     |
-| process tables             |
+| process tables             | ##PROCESS TABLE IS TABLE CONTAINING ALL PROCESSES RUNNING
 | file descriptor tables     |
-| page tables                |
-| device drivers             |
-|                            |
+| page tables                | ##PAGE TABLES DESCRIBE MEMORY
+| device drivers             | ## THIS TURNS THE SYSTEMCALLS AND THE KERNELS INTENTIONS INTO 
+|                            | ## CODE THE PERIFERALS UNDERSTAND
 +----------------------------+
 You need kernel priviledges to access kernelspace ofc.
 
@@ -746,7 +746,7 @@ Before:
 Process (PID 1234)
 
 Kernel state:
-    File descriptor table
+    Processes' Kernel File descriptor table
         0 -> terminal
         1 -> out.txt
         2 -> terminal
@@ -954,9 +954,7 @@ Thus, will first open the file, call it file2
 
 int fd = open(file2)
 
-Then it will fork because of the redirect
-
-fork()
+Then it will not fork because of the redirect, since already forked process for pipe
 
 Then, it will change the stdout to fd 
 dup2(fd,1)
@@ -964,7 +962,7 @@ close(fd)
 
 Then it will execute 
 
-execve(cat), which will, when no command line args do stdin to stdout, or pipe in to file2.
+execve(cat), which will, when no command line args do stdin to stdout, or pipe read to file2.
 
 
 
