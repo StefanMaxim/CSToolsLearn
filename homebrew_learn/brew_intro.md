@@ -23,6 +23,29 @@ and then links the ones you actually want to use in /bin /sbin and /share
 Formulae: command like packages and libraries:
 wget, python, git, etc...
 
+WHAT IT IS REALLY:
+A formula is really a ruby file, which tells brew the useful info about a package, like:
+where to download it
+how to verify it
+how to build it
+where to install it
+
+class Wget < Formula
+  desc "Internet file retriever"
+  homepage "https://www.gnu.org/software/wget/"
+  url "https://example.com/wget-1.21.tar.gz"
+  sha256 "abc123..."
+
+  def install
+    system "./configure", "--prefix=#{prefix}"
+    system "make", "install"
+  end
+end
+
+
+
+
+
 Casks: larger MacOS applications (essentially executables + relate files bundled into .app extensions)
 google-chrome, visual-studio-code, docker, etc
 
@@ -94,8 +117,8 @@ MUST-KNOW COMMANDS:
 
 brew --version  (tells you the version of brew you are using)
 brew help       (used for getting help)
-brew search <name>      (searches brew prefix for the package in question)
-brew info <name>        (gives info about the formulae installed)
+brew search <name>      (searches brew prefix for the package in question) (checks all of its taps for info, not just what you have installed in the Cellar. This just searches to see if it finds it)
+brew info <name>        (gives info about the formulae installed, info based on what you have installed)
 brew install <formula>      (installs formulae)
 brew install --cask <cask>  (installs cask, or basically an apple .app)
 brew list                   (lists all formulae and casks)
@@ -122,24 +145,8 @@ Terms 2:
 prefix: again, its the root directory for homebrew, namely /opt/homebrew/
 Cellar: the place where all versions live of a formulae/cask
 bin: place for binary executables, symlinked executables from the Cellar
-tap: an additional package/repository that homebrew knows about (CRUTIAL)
-Essentially, it is an extra package source, like a github repo
 
-to add extra repositories for sourcing packages, use:
-brew tap /user/repo
-brew install /user/repo/google-chrome
-brew tap lists all taps
-brew untap /homebrew/cask
-
-NOTE: this is shorthand for: https://github.com/homebrew/homebrew-cask
-under the scene, homebrew automatically:
-1: clones the repo
-2: adds it to /opt/homebrew/Library/Taps/homebrew/homebrew-cask or something as a library
-
-same shorthand for others, so brew install --cask google-chrome
-is really homebrew/cask/google-chrome in its CORE repository, where the base stuff are installed.
-
-
+##Linux Comparison
 
 
 LINUX COMPARISON:
@@ -183,3 +190,156 @@ export PATH="$JAVA_HOME/bin:$PATH" //doing this changes the path env var, making
 echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.zshrc
 
 have to re-add homebrew to the path
+
+
+
+## switching versions:
+
+brew search python to see the different versions
+
+install specific verison via
+
+brew install python@3.12
+
+SWITCH ACTIVE VERSION VIA:
+brew unlink python #removes the symlink from python in the Cellar to prefix (keg-only)
+brew link python@3.11 --force #re-links it, forcing the version
+
+TO KEEP HOMEBREW FROM UPDATING YOUR FORMULAE:
+
+brew pin python@3.11
+brew list --pinned
+brew unpin python@3.11 # undos it
+
+## taps and  extractions
+Normally, when you
+brew install package, brew looks for it in its default repos, called core
+
+homebrew-core contains files like:
+Formula/
+├── neovim.rb
+├── python@3.12.rb
+├── cmake.rb
+└── wget.rb
+
+each .rb file describes one package:
+exe: neovim.rb could look like:
+
+class Neovim < Formula
+  desc "Fork of Vim"
+  homepage "https://neovim.io"
+  url "https://github.com/neovim/neovim/archive/v0.10.0.tar.gz"
+  sha256 "abc123..."
+
+  depends_on "cmake" => :build
+  depends_on "gettext"
+
+  def install
+    system "make", "CMAKE_BUILD_TYPE=Release"
+    system "make", "install"
+  end
+end
+
+Homebrew reads this file and knows:
+
+1. What the software is
+2. Where to download it
+3. What dependencies it needs
+4. How to build/install it
+
+
+A tap is just another directory of these files:
+
+naming convention:
+username/repository
+becomes
+homebrew-username/homebrew-repository
+
+so brew tap alice/tools
+
+really means:
+Git repository:
+https://github.com/alice/homebrew-tools
+gets cloned into
+/opt/homebrew/Library/Taps/alice/homebrew-tools/
+
+Directory structure:
+homebrew-tools/
+│
+├── Formula/ #compiled from source ruby files
+│   ├── mytool.rb
+│   └── compiler.rb
+│
+├── Casks/ # applications, usually of binary kind
+│   ├── myapp.rb
+│   └── myfont.rb
+│
+└── README.md
+
+
+CREATING OWN TAP:
+
+brew tap-new bob/devtools
+creates a local
+bob/homebrew-devtools
+in
+/opt/homebrew/Library/Taps/bob/homebrew-devtools/
+
+homebrew-devtools/
+│
+├── Formula/
+│
+├── Casks/
+│
+└── .github/
+
+which si a normal git repo, where you can
+git add .
+git commit -m "add my tool"
+git push
+
+
+and other computers can:
+brew tap bob/devtools
+brew install mytool
+
+Suppose you create:
+
+Formula/hello-world.rb
+
+class HelloWorld < Formula
+  desc "My custom hello program"
+  homepage "https://example.com"
+
+  url "https://example.com/hello-world-1.0.tar.gz"
+  sha256 "123456789"
+
+  def install
+    bin.install "hello"
+  end
+end
+
+now, homebrew sees:
+bob/devtools
+└── Formula
+    └── hello-world.rb
+
+and package becomes:
+bob/devtools/hello-world
+
+>install via: brew install bob/devtools/hello-world
+
+
+
+Extract:
+
+this essentialy takes an old version of a formulae from git history and copies it into your own tap so you can install
+it.
+
+
+> brew extract --version=3.11.9 python@3.11 myname/versions
+
+means "Go into Homebrew's history, find the formula for python@3.11 version 3.11.9, and copy it into my tap."
+need to make own tap because cannot modify homebrew-core repo
+
+(NOTE: only the ruby file is copied, not the binary, not the source, just the ruby file)
