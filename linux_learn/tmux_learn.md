@@ -92,6 +92,9 @@ Solution: ssh, then open the tmux
 - C-b w //lists windows
 - C-b n / p //used to switch between windows
 
+- C-b z //zooms or unzooms in current pane
+- C-b , //renames current window
+
 - C-b d //detached the tmux instance, but leaves it running
 - C-d //kills the pane same as exit
 
