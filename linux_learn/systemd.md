@@ -1291,7 +1291,7 @@ so everything forms a tree rooted at PID1
 
 
 
-When a process finishes, it doesn't disappear instantly.
+When a process finishes, it doesn't disappear instantly. 
 
 Instead:
 1. it stops running
@@ -1444,6 +1444,59 @@ calls:
 argc = number of arguments
 argv = string of arguments to the command, in this case systemd
 envp = environment pointer, or an array of string containing environment variable (PATH, USER) of the OS
+**EXPLANATION**
+argv is of type char**, pointer to pointer of character, or really 2d array, where each element is a string:
+
+./program hello world
+argv[0] = ./program
+argv[1] = hello
+argv[2] = world
+
+argc = 3
+
+if your environment variables (ie your shell environment) is
+PATH=/usr/bin:/bin
+HOME=/home/alice
+USER=alice
+SHELL=/bin/bash
+
+then envp is:
+envp[0] = "PATH=/usr/bin:/bin"
+envp[1] = "HOME=/home/alice"
+... (FORMATR IS KEY=value)
+
+WHERE DOES ENVP COME FROM:
+when you login, os creates your login process (desktop session) with an initial environment, often dictated
+by ~/.zshrc, or ~/.bashrc and such
+
+can view this with env or printenv.
+
+when you run the command:
+
+./program hello world
+under the hood, the systemcall 
+execve("./program",argv,envp) is envoked, with the arrays argv and envp being
+
+argv = {
+    "./program",
+    "hello",
+    "world",
+    NULL
+};
+
+envp = {
+    "PATH=/usr/bin:/bin",
+    "HOME=/home/alice",
+    "USER=alice",
+    ...
+    NULL
+};
+
+which is given to the kernel by the shell
+
+
+
+
 execve("/usr/lib/systemd/systemd",argc,envp)
 
 so kernel -> execve(systemd) -> PID 1
