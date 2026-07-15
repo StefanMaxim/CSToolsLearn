@@ -400,9 +400,73 @@ refs: referring to git objects, especially commits, by hash is tedious, so inste
 A reference is a string, which when used in git commands, maps to a SHA1 Hash of a commit. You can select which
 commit to name, and what to name it, and can change it as you go
 
+**NOTE** these references in git are called "branches", because they can be used to indicate
+different "branches" of development. A branch starts off at a given commit, but when that commit has a child, 
+it usually moves to that child by default, called **fast-forwarding** the branch. Branches, and their underlying references
+are useful because it lets us more clearly see what the branches of development are.
+
+
 HEAD: head is a special refernce, known as a symbolic reference. This also points to a commit or reference,but has the special purpose of being interpreted as "where you are". most git commmands, unless otherwise specified, will work relative to this 
 reference, and crutially when someone clones your repo (makes a copy of your project on their own computer) this is 
 where they start, which makes it very important.
+
+## git structure
+
+Git is primarily organized around Commits, and how to create new commits for version control over what you are working
+on right now. 
+
+To this end, git had 3 key components:
+
+1. Past Commits (the commit structure discussed heavily up untill now)
+
+2. The Working Directory / Working Tree
+This represents the current state of your directory. This literally means just what you directory looks like right now
+
+exe: suppose you are in a directory titled "dir", and it has the files "foo.txt" and "bar.txt"
+
+the current working directory would look like
+
+dir/
+|
+|--- foo.txt
+|
+|--- bar.txt
+
+3. The staging area / index
+
+THIS IS THE KEY MIDDLEGROUND!
+
+one possible model would be to have just past commits and the working tree. 
+Then, have a git command that would just take a snapshot of the working tree, turn it into a compressed git object
+(a commit) and then store that for safekeeping.
+
+However, what if there's a file in your directory that you really dont want to save in history, like a passwords doc
+or a notes document thats not really that important? What about a massive data file that is big enough as it is that
+it doesnt need to be loaded into history and compressed? The solution is the **index**
+
+This is an area where the user can selectively add/remove files to prepare them to be committed.
+Instead of committing the entire repo, just add whatever you would like to the "staging area", which in reality is just a 
+file keeping track of what you want added, and then the commit command only serializes and compresses those select items. 
+
+
+
+Most git commands are concerned with the interplay between these 3 fundamental spaces, be it adding/removing files
+from the working directory to the index, commiting the index, or comparing the working directory to the index or past
+commits. 
+
+
+Also important to note, is how these past commits can be used for version control. Suppose you, in your current version of a program made a mistake, and you want to undo it to be like the way it was a while ago. Theres a command for that (git restore). 
+What if you just want to make everything like the way it was before and run tests on that old code. Meaning, turn your 
+working directory back the way it was a while ago using a commit as guidlines. Theres a command for that (git checkout).
+**NOTE** however, that if you have changes made from a previous commit in the working directory, it wont let you checkout
+and old commit without either commiting what you have or discarding it.
+
+Basically, all of git is about moving in these spaces, changing between them, comparing them, and parallel development using branches.
+
+
+
+
+
 
 
 
@@ -411,3 +475,350 @@ where they start, which makes it very important.
 Now that you get how git works in reality, from here its just learning commands and what they do:
 
 ### Intro
+
+> git init:
+initializes a git repository inside of a directory (creates the .git directory that allows the commands to work)
+
+> git help
+Useful for learning how git works
+can use help on any basic tooling to see what it does
+
+> git status:
+very crutial command!
+this tells you all sorts of important information:
+
+1. tells you what branch you are on
+"On branch main"
+
+NOTE: when you just created a git repo, it will also say "on branch main", even though no commits exist yet, and even no
+branches.
+(can test with git branch -v , which lists all branches)
+That is because it is looking at where your HEAD is pointing (representing where you are).
+
+inside of .git, the file HEAD just stores a string representing where HEAD is pointing:
+
+ref: refs/heads/main //by default, this is said to be refs/heads/main
+
+THus, when you type git status, it will by default tell you on branch main, because thats what it says in HEAD, 
+even though there is no reference called refs/heads/main YET.
+
+only after you first create an initial commit (which must be on branch main) will it finally create the reference, and 
+from there you can make more branches and explore parallel development.
+
+2. It also tells you whether your branch is ahread/behind of its upsteam (more on that later)
+
+3. It also tells you about which changes remain to be committed
+In other words, it tells you what files you have added to the index, and that stand to be committed
+
+4. It also tells you which changes have not been stated for commit yet, but nonetheless exist between
+HEAD and your working directory
+
+
+
+> git add
+main way to add files to your index.
+If this is the first time you added this file to the index, in that it doesnt exist in any past commits, that file is 
+considered **Untracked** and will have a green U next to its name
+
+If it exists in version history, but nonetheless has modifications from the last commit, that file is considered
+**Modified** and will have a yello M next to its name
+
+Files which already exist in version control history and have no changes from head will appear as 
+**Tracked** files, which have no specific markers
+
+Only files that are untracked or modified can be staged to the index, as untracked unmodified files have no need of appearing
+
+**NOTE** once a file is considered TRACKED, it will be automatically included in the next commit. There is no need
+to re-add it every time. If you commit the index without adding an untracked file, that file will be excluded from the created commit. If you commit to the index without adding a modified file, that file will be included in the created commit, however it will appear as its most recent version in history, which will not match up with its current state
+
+Once a file is added to the staging area, it will appear as **Added**, meaning it exists in the index, and is marked by a
+green or yellow A next to it.
+
+
+git add <file/dir> 
+adds the file/dir to the index
+
+git add :/ 
+adds all files/directories visible to git into the staging area
+
+git add -A 
+same as above, difference being :/ means the root, so you adding the root directory and all its files
+
+> git rm
+This is used for removing files. This can mean removing them using rm and then staging the change in the repo,
+or removing them from the list of tracked files
+
+git rm file
+removes the file and stages the change, telling git to no longer track it
+
+git rm --cached file
+removes the file from the index and tells git to no longer track it
+
+git rm -r dir/ 
+like regular git rm, but recursive
+
+git rm --cached -r dir/
+recursive dir flag for cached removal
+
+
+> git commit
+This command creates a new commit using the staging area + tracked files, and adds it to version history
+
+git commit 
+by default, makes a new commit using working directory, and sets its parent to head
+
+git commit -m "msg"
+git commits require a message, so the -m flag lets you specify it without having to vim it in
+
+git commit -a
+automatically adds and commits all changes made to currently tracked files. IE if a file is tracked and modified, will
+add and commit them all
+
+
+> git restore
+Used for restoring a file/dir in the working directory back to the state it was in a previous commit
+
+git restore filename
+By default, restores the working file to state at HEAD
+
+git restore -s (source) filename
+Lets you restore from a specified commit/reference
+
+git restore --staged filename
+Removes the modifications of a file from the index without untracking the file. IE, restores the state that the file
+appeared in the staging area before this round of adds (could be untracked, or what it was during HEAD) but restores
+the file in the index without modifying the working dir. **VERY USEFUL**
+
+> git log
+
+git log
+Makes you a visual representation of the commit DAG for visualizing version control
+
+git log --all --graph --decorate --oneline
+Useful command for making a more clean, pretty graph
+
+**TIP** for ease of use, set this as an alias in your git config file, ~/.gitconfig:
+
+~/.gitconfig ->
+
+[User]
+    name = Stefan Teodor Maxim
+    email = stefan.teodor.maxim@gmail.com
+[Alias]
+    lg = log --all --graph --decorate --oneline
+
+
+> git cat-file
+
+git cat-file -p object
+
+**VERY USEFUL FOR LEARNING GIT** lets you decompress and inspect git objects like commits, trees, and blobs to see
+what they look like. good for seeing git internals
+
+> git checkout
+This is the command that lets you "check out" what different files and commits used to look like.
+This works by overriding your working directory and replacing it with the specified file/commit/reference
+NOTE: cannot have any pending changes at this point, as they will be discarded on checkout, so save them somehow
+
+git checkout filename.txt 
+turns your filename.txt into the verison it used to be in HEAD
+
+git checkout -f filename.txt
+Force flag, lets you discard changes in working directory and make file match version in HEAD
+
+git checkout <ref/id>
+this lets you make your working directory match the way it used to be for a given commit. VERY USEFUL
+
+> git diff
+
+This is used to compare the versions of files/directories between commits
+
+git diff
+by itself, git diff compares your working directory with your staging area
+
+git diff file
+compares only the file, not the entire commit vs root dir
+
+git diff --staged
+compares your index with HEAD commit
+
+git diff -a
+compares for all files tracked
+
+git diff HEAD file
+now, specifically compares working directory with teh commit/reference HEAD
+
+git diff COMMIT1 COMMIT2 file
+Now, compares Commit1 and Commit2, id/refs, and shows what it takes to go from COMMIT1 to COMMIT2
+
+### Git Branches
+Like I said earlier, a branch is just a moving reference, that represents a "branch" of development
+When you checkout a branch, what that means is that HEAD points to that branch/refernce
+By default, HEAD points to main, but can change that via checkout.
+
+> git switch
+used to switch branches. git commit can also do this since its overridden, but this is the correct command
+
+> git branch
+The master command for dealing with branches, be that creating, deleting, or listing them
+
+git branch
+lists all the branches
+
+git branch -v
+lists all the branches, and some info about them liek commit,msg, and how much ahead it is relative to upstream
+
+git branch -vv
+Even more verbose version, including the branch's upstream (more on that later)
+
+git branch branch_name
+Used to create a new branch
+
+git checkout -B branch_name
+creates + checks out a branch simultaneously
+
+git branch -m oldname newname
+used to "move" or rather rename a branch to a new name
+
+git branch -M newname
+forcefully renames current branch (HEAD POINT) to newname
+
+git branch -d branchname
+removes branch/reference. only useful when redundant (ie 2 branches on same commit)
+
+git branch -D branchname
+forcefully removes the branch
+
+git branch -c oldbranch newbranch
+copies old branch to newbranch, basically makes a new reference there
+
+### Git Merging
+
+Like I said in the very beginning, a big advantage of git is the ability to split a once linear history into branches 
+then merge them in the end. Loosely, it combines the two commits into a single one, hopefully automatically, but if its
+not that easy then via merge conflicts which you must manually resolve
+
+>git merge
+main command for merging branches
+
+git merge branchname
+merges your current branch with the branch branchname
+**NOTE** more precisely, it merges branchname INTO your branch, meaning that the current branch reference will be
+the one that moves forward, considered the "primary" branch in this transaction.
+
+exe:
+
+* ec9cc1c (HEAD -> feature2) feature 2
+| * d08a914 (feature) feature initial branch
+|/  
+* 8d560e1 (main) msg
+
+first, go to main via git switch main
+
+now, tryo merge via git merge feature2
+This will merge feature2 into main(moving mains reference)
+
+HOWEVER: note the parent-child relationship between them. These types of merges are called **fast-forwards**
+and are resolved by just moving main's reference to the commit of feature2
+
+* ec9cc1c (HEAD -> main, feature2) feature 2
+| * d08a914 (feature) feature initial branch
+|/  
+* 8d560e1 msg
+
+from here, we want to combine both of those branches, so just 
+
+
+git merge main feature1
+merges feature1 branch into main branch, updating main's reference
+
+in this case, we happen to get a merge conflict:
+
+in our case, versions.py was messed up. 
+
+**NOTE** from here, you have to resolve the merge conflict, and there are many tools at your availablity.
+First, all files that have conflicting writing will appear with a "!" next to them. Furthermore, they will look something like this:
+
+import sys
+
+<<<<<<< HEAD
+def main():
+	dog()
+	
+def dog():
+	print(f"Bark")
+	
+if __name__ == '__main__':
+	main()
+=======
+
+def main():
+    cat()
+
+def cat():
+    print("Meow")
+
+
+if __name__ == '__main__':
+    main()
+>>>>>>> feature
+
+Here it displays the two disparaate versions, with the top being the version from teh HEAD branch (current)
+and the bottom being the feature branch you are merging into it. 
+
+
+git merge --abort
+Used to cancel the merge, lets you keep thinking on what do do
+
+Otherwise, you must resolve the conflict:
+To do this, you must fix the modified file by combining the two versions now interspliced in your working directory and
+then add that file to the staging area via
+
+git add file
+
+finally, when you are done, git merge --continue to finalize the merge.
+This can be done either by editing the file manually or using tools like what vscode offers to combine the file so you can add it.
+
+
+Summary:
+
+> git merge branchname
+merges branchname into current brancb
+
+> git merge branch1 branch2
+merges branch2 into branch1
+
+> git merge --abort
+used to abort the merge
+
+> git add file
+used after modifying the amalgamation file in the working dir to say you are done
+
+> git merge --continue
+used to continue the merge once no more conflicts exist
+
+### Git Remotes
+Git primarily is concerned with the local git repo, however sometimes you may want to save your changes in another repo
+or over the internet. That is whare git remotes come in.
+
+A remote is a git repo that can be used as a different version of your current repo. 
+
+Your current (local) git repo has various objects, references, and configs, which can be pushed to other
+git repos for the sake of collaboration or safety. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
