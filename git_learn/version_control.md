@@ -201,6 +201,29 @@ Thus, there are also 2 "types" of inodes.
 1. Definite Inodes
 The ones that live on the disk.
 
+**KEY**
+WHen creating a filesystem, exe mkfs.ext4
+it lays out several on-disk datastructures, such as superblocks, block group descriptors, inode tables, datablocks, and 
+bitmaps.
+each inode occupies (usually) 256 bytes on disk in an inode table:
+
+Partition
+Superblock
+GRoup descriptor tabl
+block group 1:
+    block bitmap
+    inode bitmap 
+    inode table
+    data blocks
+
+when kernel wants an inode:
+it first determines the inode #
+then computes which block group contains that number via the inode number: group (i-1)/inodes_per_group, index is % vs /
+then lastly reads corresponding inode from the inode table on disk
+
+some inode slots are free or allocated(representing current files/directories)
+disk inode tables colelctively represent all possible inodes for the system
+
 2. Inode Structs
 When you want to "load" in from the disk to RAM, the inodes are represented in the kernel as a special object
 called an Inode Struct. This is the version you see more commonly, and is what the kernel uses to preform writes.
