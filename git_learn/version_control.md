@@ -829,7 +829,33 @@ A remote is a git repo that can be used as a different version of your current r
 Your current (local) git repo has various objects, references, and configs, which can be pushed to other
 git repos for the sake of collaboration or safety. 
 
-> git pull
+
+> git remote
+lists which remotes you have available
+
+git remote -vv gives more detail on the remotes, like address or location of the repo
+
+> git remote add <name> <url>
+lets you add a new remote to your repo
+
+> git fetch origin 
+this grabs all of the references from the remote and updates then on the local, changing the symbolic reference 
+representing them
+
+**ASIDE ON SYMBOLIC REFERENCES**
+unlike regular references on your local, these ones are set primarily by fetching from the remote, not updated yourself
+
+you can run commands like:
+
+git remote set-branches <name> <branch>, whcih changes the branches tracked by the remote and more,like
+git remtoe set-head origin master, but CRUTIALLY, THESE ONLY UPDATE YOUR LOCAL SYMBOLIC REFS, AND DO NOT PUSH THESE CHANGES ONTO THE REMOTE!!
+
+
+git fetch --prune remote
+this will remove all referenes not in the remote
+
+
+> git push
 
 The main way that you syncronize the git repository on your local device and the remote.
 Conceptually, it performs 2 independant actions:
@@ -1033,6 +1059,33 @@ this needs a force, because fails the fast-forward test since G is not an ancest
 **NOTE2** to solve this dilemma, likely you would use git rebase to rebase your commit as if it were after G.
 git fetch origin + git rebase main origin/main
 
+
+> git push -u origin main
+this sets the upstream of your main branch to origin/main.
+NOTE: when no second branch specified, will push the given local branch to a remote branch of the same name
+
+**SETTING UPSTREAM**
+the "upstream" of a branch is the reference on the remote that should match it
+once the upstread of a branch is set,
+"git push" from within a branch is understood as "git push <remote> <local:remote>" for whatever the remote 
+corresponding branch is. 
+
+
+git push --prune
+the prune flag means remove any references on teh remote which do not match up with ones on the local
+(usually have the same name)
+
+
+> git clone <url> <folder_name>
+This clones the repo from the cloud (git) onto your local computer. Basically, it downloads all of the stuff on the remote
+and makes your local look just like it
+
+>git pull 
+This is just a combo between git fetch and git merge branch remote/branch.
+This updates one of your local branches based on its upstream. FOR THIS, UPSTREAM MUST BE SET.
+
+git pull origin main 
+does the same, but when no upsteam set, this is what to use
 
 
 
