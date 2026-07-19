@@ -829,8 +829,209 @@ A remote is a git repo that can be used as a different version of your current r
 Your current (local) git repo has various objects, references, and configs, which can be pushed to other
 git repos for the sake of collaboration or safety. 
 
+> git pull
+
+The main way that you syncronize the git repository on your local device and the remote.
+Conceptually, it performs 2 independant actions:
+1. Transfer sgit objects (commits, trees, blobs, tags, etc if needed)
+2. Requests updates to references (refs) on the remote
+
+Recall:
+Git stores two things
+
+Objects (commits, trees, blobs, tages)
+and
+
+References:
+exe:
+refs/heads/main
+refs/heads/dev
+HEAD
+etc...
+
+These files simply contain SHA1/SHA256 IDs of some commit(representing the one which it points to)
 
 
+What happens when you push:
+
+remote:
+A--B
+
+local:
+A--B--C
+
+git push origin main:main
+
+1. First, it connects to the remote origin via either SSH, HTTPS, or some other protocol
+2. Remote advertises its references
+exe, it says "I currently have commits:
+refs/heads/main = B
+refs/heads/dev = D
+refs/tags/v1.0 = T
+"
+3. Local compares graphs
+looks at the two references specified.
+Sees want to push some local branch main to a remote branch algo called main (local-branch:remote-branch)
+
+Git sees that local main points to C
+Remote main points to B
+Thus, git knows it want to main the remote branch point to C as well.
+
+**NOTE** the goal of a push is to make a reference on the remote point to the same commit as on the local!!!
+**THIS IS HUGE!!! ITS NOT ABOUT MATCHING THE HISTORY, JUST MAKING THE REFERENCE POINT TO THE SAME COMMIT**
+THE GRAPH (HISTORY) IS CREATED ON THE FLY FROM THE REFERENCES. THE HISTORY MATCHES MORESO AS A BYPRODUCT, RATHER THAN
+A GOAL!!!!!
+
+
+4. Git computes missing objects (note: looks at objects, not files!)
+Git looks at what is necessary to turn the remote branch in to the local branch.
+Want to make the remote main point to C, so for this:
+Remote missing C (must give it C)
+Remote already has: A,B (the parent commits, needed for the graph)
+
+
+5.  Git does more granular search for missing objects
+Suppose commit C introduced
+new file
+blob x
+tree y 
+commit C
+
+Git determines remote lacks
+commit C
+tree Y
+blob X
+
+Thus, git only sends blob X, tree Y, commit C
+
+6. Git creates a packfile, which is a compressed archive of objects
+
+PACK
+blob 
+tree
+commit
+blob
+commit
+(delta-compressed)
+
+**KEY**
+instead of 
+Version 1
+Version 2
+It stores:
+Version 1
++
+diff (making pushes much smaller)
+
+7. git sends update request
+Update
+refs/heads/main
+Old = B
+New = C
+NOTE: this isnt saying "Make main point to C", but "ONLY UPDATE IF main is currently equals B"
+
+(THIS IS KEY, BECAUSE IT PREVENTS RACE CONDITIONS)
+exe:
+suppose meanwhile somebody else pushed 
+A--B--D
+now, main -> D
+
+Without the check, main would become C, whcih points to B, whcih is confusing, since its biforcated tree.
+The condition prevents race conditions
+
+8. Checks policy
+
+
+
+INPORTANT 2:
+Fast-forward vs Non-Fast-Forward
+
+exe:
+
+remote: A--B
+local: A--B--C--D
+
+updating the remote's main from B to D is safe because B is an ancestor of D (nothing disappears from the graph)
+Just have to make it point to D, and Copy over C and D, but A and B still present.
+
+suppose instead:
+
+remote: A--B--E
+local: A--B--C
+here, neither commit is an ancestor.
+Updating the remote's main from E->C would lose visibility of E (rejected)
+(THE FAST FORWARD CHECK IS JUST ARE ALL COMMITS ASSOCIATED WITH TEH OLD REFERENCE VALUE ANCESTORS OF THE NEW
+REFERENCE)
+
+
+
+git push --force
+
+This option ignores ancestry, and moves the reference anyways (still does perms check, but skips fast-forward validation)
+(will just change the remote reference to the desired commit without checking that it preserved fast-forward)
+
+git push --force-with-lease
+
+This is the safer version of force, in that is checks that
+"move ref only if remote still equals what I expect"
+this way, if somebody in the mean time pushed E after you fetched, the force fails
+RECALL: pushes updates include previous commit:
+
+Update refs/heads/main
+Old=B
+New=D
+
+remote uses the update to check "Is main still B", If yes it can safely change to D. If in the meantime its changed
+to E from some other push, it will reject your push.
+
+KEY: value that gets used as old depends on the type of push.
+for normal push, local learns of remote from the initial fetch, then uses that information to send the update
+request above. 
+
+for force push, its different:
+suppose:
+remote: main -> E
+local: main ->D' (custom change)
+
+when you git push --force, it first queries the remote, it says its at 'E', includes the E as part of the update request,
+the remote checks that its still at E, thats true, then its done. 
+However, notice this doesnt account for the fact that yesterday, when you rewrote your history, the branch was at D. 
+(just the current state of the remote)
+
+**KEY** 
+difference is between what is considered the OLD
+for normal case, OLD is just what the remote has right before your push, obtained from the initial query
+(this is just done to avoid race conditions when pushing)
+
+However, --force-with-lease makes OLD be the value that it was logged as in the local, which is based on the most recent
+fetch
+
+This prevents you from erasing some new work that you were not previously aware of
+
+EXE:
+suppose yesterday, the remote looked like
+
+A--B--C
+
+you fetch it, and make 2 new commits:
+
+A--B--C--D--E
+
+now, decide, "want to combine D and E" into a single commit
+cannot modify existing commits, but can create a new commit which is the same final file as D+E
+
+A--B--C--F
+
+now, suppose new dev, alice fetches, and pushes:
+
+A--B--C--G, meanwhile, you locally have A--B--C--F
+
+now, you want to replace the remote's main G with F. 
+this needs a force, because fails the fast-forward test since G is not an ancestor of F
+
+
+**NOTE2** to solve this dilemma, likely you would use git rebase to rebase your commit as if it were after G.
+git fetch origin + git rebase main origin/main
 
 
 
